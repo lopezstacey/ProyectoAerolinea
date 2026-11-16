@@ -1,4 +1,3 @@
-
 #include "Aplicacion.h"
 #include "PantallaInicio.h"
 #include "PantallaCiudades.h"
@@ -6,6 +5,8 @@
 #include "PantallaTripulantes.h"
 #include "PantallaPasajeros.h"
 #include "PantallaMaletas.h"
+#include "PantallaVuelos.h"
+#include "PantallaRutas.h"
 
 using namespace sf;
 
@@ -51,9 +52,7 @@ void Aplicacion::procesarEventos()
 		int opcion = BarraLateral::NINGUNA;
 		
 		if (evento.type == Event::MouseButtonPressed && evento.mouseButton.button == Mouse::Left)
-		{
 			opcion = barraLateral.procesarEvento(ventana, evento);
-		}
 		
 		if (opcion == BarraLateral::GESTION_CIUDADES)
 		{
@@ -65,6 +64,20 @@ void Aplicacion::procesarEventos()
 		if (opcion == BarraLateral::GESTION_AERONAVES)
 		{
 			gestorPantallas.cambiarPantalla(new PantallaAeronaves(&listaAeronaves));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		
+		if (opcion == BarraLateral::GESTION_VUELOS)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaVuelos(&listaVuelos, grafo));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		
+		if (opcion == BarraLateral::GESTION_RUTAS)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaGestionRutas(&listaRutas, &listaAeronaves, &listaVuelos));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}

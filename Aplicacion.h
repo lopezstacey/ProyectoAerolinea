@@ -8,6 +8,9 @@
 #include "ListaTripulantes.h"
 #include "ListaPasajeros.h"
 #include "ListaMaletas.h"
+#include "ListaVuelos.h"
+#include "ListaRutas.h"
+
 using namespace sf;
 
 class Aplicacion
@@ -20,6 +23,8 @@ private:
 	ListaTripulantes listaTripulantes;
 	ListaPasajeros listaPasajeros;
 	ListaMaletas listaMaletas;
+	ListaVuelos listaVuelos;
+	ListaRutas listaRutas;
 	GestorPantallas gestorPantallas;
 	BarraLateral barraLateral;
 	Clock reloj;
