@@ -15,6 +15,7 @@ PantallaCiudades::PantallaCiudades(Grafo* grafo)
 	mapaY = 185;
 	mapaAncho = 925;
 	mapaAlto = 485;
+	desplazamientoLista = 0;
 	
 	if (mapaCargado)
 	{
@@ -39,6 +40,33 @@ bool PantallaCiudades::dentroDe(int x, int y, float px, float py, float ancho, f
 
 void PantallaCiudades::procesarEventos(RenderWindow& ventana, Event evento)
 {
+	if (evento.type == Event::MouseWheelScrolled)
+	{
+		float panelListaX = static_cast<float>(ventana.getSize().x) - 235;
+		float limiteInferior = mapaY + mapaAlto - 10;
+		float inicioLista = 268;
+		int filasVisibles = static_cast<int>((limiteInferior - inicioLista) / 38.0f);
+		if (filasVisibles < 1)
+			filasVisibles = 1;
+		
+		int maximoDesplazamiento = grafo->getCantidadVertices() - filasVisibles;
+		if (maximoDesplazamiento < 0)
+			maximoDesplazamiento = 0;
+		
+		int mouseX = evento.mouseWheelScroll.x;
+		int mouseY = evento.mouseWheelScroll.y;
+		
+		if (dentroDe(mouseX, mouseY, panelListaX, mapaY + 10, 220, mapaAlto - 20))
+		{
+			desplazamientoLista -= static_cast<int>(evento.mouseWheelScroll.delta) * 3;
+			
+			if (desplazamientoLista < 0)
+				desplazamientoLista = 0;
+			if (desplazamientoLista > maximoDesplazamiento)
+				desplazamientoLista = maximoDesplazamiento;
+		}
+	}
+	
 	if (evento.type == Event::KeyPressed)
 	{
 		if (evento.key.code == Keyboard::Tab)
@@ -331,19 +359,43 @@ void PantallaCiudades::dibujarListado(RenderWindow& ventana)
 	NodoVertice* actual = grafo->getPrimero();
 	float panelX = static_cast<float>(ventana.getSize().x) - 235;
 	float x = panelX + 12;
-	int y = 258;
+	float limiteInferior = mapaY + mapaAlto - 10;
+	float inicioLista = 268;
+	int filasVisibles = static_cast<int>((limiteInferior - inicioLista) / 38.0f);
+	
+	if (filasVisibles < 1)
+		filasVisibles = 1;
+	
+	int maximoDesplazamiento = grafo->getCantidadVertices() - filasVisibles;
+	if (maximoDesplazamiento < 0)
+		maximoDesplazamiento = 0;
+	
+	if (desplazamientoLista > maximoDesplazamiento)
+		desplazamientoLista = maximoDesplazamiento;
+	if (desplazamientoLista < 0)
+		desplazamientoLista = 0;
+	
+	int omitidas = 0;
+	while (actual != nullptr && omitidas < desplazamientoLista)
+	{
+		actual = actual->siguiente;
+		omitidas++;
+	}
+	
+	float y = inicioLista;
 	int cantidad = 0;
 	
-	while (actual != nullptr && cantidad < 10)
+	while (actual != nullptr && cantidad < filasVisibles)
 	{
 		RectangleShape fila(Vector2f(196, 30));
-		fila.setPosition(x, static_cast<float>(y - 4));
+		fila.setPosition(x, y - 4);
 		fila.setFillColor(actual->ciudad.getCodigo() == codigoSeleccionado ? Color(220, 235, 248) : Color(235, 243, 249));
 		ventana.draw(fila);
 		
 		string linea = actual->ciudad.getCodigo() + "   " + actual->ciudad.getNombre();
 		Color color = actual->ciudad.getCodigo() == codigoSeleccionado ? Color(0, 105, 155) : Color(35, 65, 90);
-		dibujarTexto(ventana, x + 8, static_cast<float>(y), linea, 13, color);
+		dibujarTexto(ventana, x + 8, y, linea, 13, color);
+		
 		y += 38;
 		cantidad++;
 		actual = actual->siguiente;
@@ -442,7 +494,7 @@ void PantallaCiudades::dibujar(RenderWindow& ventana)
 	dibujarTexto(ventana, panelListaX + 15, mapaY + 50, "Total: " + to_string(grafo->getCantidadVertices()), 12, Color(25, 35, 45));
 	
 	RectangleShape separador(Vector2f(panelListaAncho - 30, 1));
-	separador.setPosition(panelListaX + 15, mapaY + 72);
+	separador.setPosition(panelListaX + 15, mapaY + 82);
 	separador.setFillColor(Color(190, 210, 225));
 	ventana.draw(separador);
 	

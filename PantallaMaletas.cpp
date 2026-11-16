@@ -216,20 +216,20 @@ void PantallaMaletas::dibujarFormulario(RenderWindow& ventana)
 	
 	Color colorBoton = editando ? Color(225, 125, 30) : Color(28, 91, 145);
 	RectangleShape botonGuardar(Vector2f(165, 45));
-	botonGuardar.setPosition(345, 445);
+	botonGuardar.setPosition(345, 460);
 	botonGuardar.setFillColor(colorBoton);
 	ventana.draw(botonGuardar);
 	
-	dibujarTexto(ventana, editando ? 375 : 390, 457, editando ? "GUARDAR CAMBIOS" : "REGISTRAR", 14, Color::White);
+	dibujarTexto(ventana, editando ? 375 : 390, 472, editando ? "GUARDAR CAMBIOS" : "REGISTRAR", 14, Color::White);
 	
 	RectangleShape botonEliminar(Vector2f(165, 45));
-	botonEliminar.setPosition(525, 445);
+	botonEliminar.setPosition(525, 460);
 	botonEliminar.setFillColor(Color(180, 55, 55));
 	ventana.draw(botonEliminar);
 	
-	dibujarTexto(ventana, 575, 457, "ELIMINAR", 14, Color::White);
+	dibujarTexto(ventana, 575, 472, "ELIMINAR", 14, Color::White);
 	
-	dibujarTexto(ventana, 350, 505, "Seleccione una maleta del listado para modificarla", 12, Color(100, 110, 120));
+	dibujarTexto(ventana, 350, 520, "Seleccione una maleta del listado para modificarla", 12, Color(100, 110, 120));
 }
 
 void PantallaMaletas::dibujarListado(RenderWindow& ventana)
