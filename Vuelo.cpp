@@ -1,37 +1,36 @@
-
 #include "Vuelo.h"
 
 Vuelo::Vuelo()
 {
-	codigo = 0;
-	ciudadOrigen = 0;
-	ciudadDestino = 0;
+	codigo = "";
+	codigoOrigen = "";
+	codigoDestino = "";
 	costo = 0;
 	duracion = 0;
 }
 
-Vuelo::Vuelo(int codigo, int ciudadOrigen, int ciudadDestino, float costo, float duracion)
+Vuelo::Vuelo(string codigo, string codigoOrigen, string codigoDestino, float costo, float duracion)
 {
 	this->codigo = codigo;
-	this->ciudadOrigen = ciudadOrigen;
-	this->ciudadDestino = ciudadDestino;
+	this->codigoOrigen = codigoOrigen;
+	this->codigoDestino = codigoDestino;
 	this->costo = costo;
 	this->duracion = duracion;
 }
 
-int Vuelo::getCodigo() const
+string Vuelo::getCodigo() const
 {
 	return codigo;
 }
 
-int Vuelo::getCiudadOrigen() const
+string Vuelo::getCodigoOrigen() const
 {
-	return ciudadOrigen;
+	return codigoOrigen;
 }
 
-int Vuelo::getCiudadDestino() const
+string Vuelo::getCodigoDestino() const
 {
-	return ciudadDestino;
+	return codigoDestino;
 }
 
 float Vuelo::getCosto() const
@@ -44,6 +43,21 @@ float Vuelo::getDuracion() const
 	return duracion;
 }
 
+void Vuelo::setCodigo(string codigo)
+{
+	this->codigo = codigo;
+}
+
+void Vuelo::setCodigoOrigen(string codigoOrigen)
+{
+	this->codigoOrigen = codigoOrigen;
+}
+
+void Vuelo::setCodigoDestino(string codigoDestino)
+{
+	this->codigoDestino = codigoDestino;
+}
+
 void Vuelo::setCosto(float costo)
 {
 	this->costo = costo;
@@ -53,4 +67,3 @@ void Vuelo::setDuracion(float duracion)
 {
 	this->duracion = duracion;
 }
-

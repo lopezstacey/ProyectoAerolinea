@@ -1,29 +1,28 @@
-
 #ifndef CIUDAD_H
 #define CIUDAD_H
-
 #include <string>
+
 using namespace std;
 
 class Ciudad
 {
 private:
-	int codigo;
+	string codigo;
 	string nombre;
 	float posicionX;
 	float posicionY;
 	
 public:
 	Ciudad();
-	
-	Ciudad(int codigo, string nombre, float posicionX, float posicionY);
-	
-	int getCodigo() const;
+	Ciudad(string codigo, string nombre, float posicionX, float posicionY);
+	string getCodigo() const;
 	string getNombre() const;
 	float getPosicionX() const;
 	float getPosicionY() const;
+	void setCodigo(string codigo);
 	void setNombre(string nombre);
-	void setPosicion(float x, float y);
+	void setPosicionX(float posicionX);
+	void setPosicionY(float posicionY);
 };
 
 #endif

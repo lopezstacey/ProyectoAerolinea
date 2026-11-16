@@ -1,15 +1,14 @@
-
 #include "Ciudad.h"
 
 Ciudad::Ciudad()
 {
-	codigo = 0;
+	codigo = "";
 	nombre = "";
 	posicionX = 0;
 	posicionY = 0;
 }
 
-Ciudad::Ciudad(int codigo, string nombre, float posicionX, float posicionY)
+Ciudad::Ciudad(string codigo, string nombre, float posicionX, float posicionY)
 {
 	this->codigo = codigo;
 	this->nombre = nombre;
@@ -17,7 +16,7 @@ Ciudad::Ciudad(int codigo, string nombre, float posicionX, float posicionY)
 	this->posicionY = posicionY;
 }
 
-int Ciudad::getCodigo() const
+string Ciudad::getCodigo() const
 {
 	return codigo;
 }
@@ -37,13 +36,22 @@ float Ciudad::getPosicionY() const
 	return posicionY;
 }
 
+void Ciudad::setCodigo(string codigo)
+{
+	this->codigo = codigo;
+}
+
 void Ciudad::setNombre(string nombre)
 {
 	this->nombre = nombre;
 }
 
-void Ciudad::setPosicion(float x, float y)
+void Ciudad::setPosicionX(float posicionX)
 {
-	posicionX = x;
-	posicionY = y;
+	this->posicionX = posicionX;
+}
+
+void Ciudad::setPosicionY(float posicionY)
+{
+	this->posicionY = posicionY;
 }
