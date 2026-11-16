@@ -3,6 +3,9 @@
 #include "PantallaInicio.h"
 #include "PantallaCiudades.h"
 #include "PantallaAeronaves.h"
+#include "PantallaTripulantes.h"
+#include "PantallaPasajeros.h"
+#include "PantallaMaletas.h"
 
 using namespace sf;
 
@@ -62,6 +65,27 @@ void Aplicacion::procesarEventos()
 		if (opcion == BarraLateral::GESTION_AERONAVES)
 		{
 			gestorPantallas.cambiarPantalla(new PantallaAeronaves(&listaAeronaves));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		
+		if (opcion == BarraLateral::GESTION_TRIPULACION)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaTripulantes(&listaTripulantes));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		
+		if (opcion == BarraLateral::GESTION_PASAJEROS)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaPasajeros(&listaPasajeros, &listaMaletas, &gestorPantallas));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		
+		if (opcion == BarraLateral::GESTION_MALETAS)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaMaletas(&listaMaletas));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
