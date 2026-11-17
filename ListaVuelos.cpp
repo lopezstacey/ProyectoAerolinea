@@ -87,6 +87,42 @@ bool ListaVuelos::eliminar(string codigo)
 	return false;
 }
 
+int ListaVuelos::eliminarPorCiudad(string codigoCiudad, ListaRutas* rutas)
+{
+	int eliminados = 0;
+	NodoVuelo* anterior = nullptr;
+	NodoVuelo* actual = primero;
+	
+	while (actual != nullptr)
+	{
+		if (actual->vuelo.getCodigoOrigen() == codigoCiudad ||
+			actual->vuelo.getCodigoDestino() == codigoCiudad)
+		{
+			NodoVuelo* eliminado = actual;
+			actual = actual->siguiente;
+			
+			if (anterior == nullptr)
+				primero = actual;
+			else
+				anterior->siguiente = actual;
+			
+			if (rutas != nullptr)
+				rutas->eliminarPorVuelo(eliminado->vuelo.getCodigo());
+			
+			delete eliminado;
+			cantidad--;
+			eliminados++;
+		}
+		else
+		{
+			anterior = actual;
+			actual = actual->siguiente;
+		}
+	}
+	
+	return eliminados;
+}
+
 NodoVuelo* ListaVuelos::getPrimero() const
 {
 	return primero;

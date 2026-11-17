@@ -95,6 +95,70 @@ bool ListaRutas::eliminar(string codigo)
 	return false;
 }
 
+int ListaRutas::eliminarPorVuelo(string codigoVuelo)
+{
+	int eliminadas = 0;
+	NodoRuta* anterior = nullptr;
+	NodoRuta* actual = primero;
+	
+	while (actual != nullptr)
+	{
+		if (actual->ruta.getCodigoVuelo() == codigoVuelo)
+		{
+			NodoRuta* eliminado = actual;
+			actual = actual->siguiente;
+			
+			if (anterior == nullptr)
+				primero = actual;
+			else
+				anterior->siguiente = actual;
+			
+			delete eliminado;
+			cantidad--;
+			eliminadas++;
+		}
+		else
+		{
+			anterior = actual;
+			actual = actual->siguiente;
+		}
+	}
+	
+	return eliminadas;
+}
+
+int ListaRutas::eliminarPorAeronave(string matriculaAeronave)
+{
+	int eliminadas = 0;
+	NodoRuta* anterior = nullptr;
+	NodoRuta* actual = primero;
+	
+	while (actual != nullptr)
+	{
+		if (actual->ruta.getMatriculaAeronave() == matriculaAeronave)
+		{
+			NodoRuta* eliminado = actual;
+			actual = actual->siguiente;
+			
+			if (anterior == nullptr)
+				primero = actual;
+			else
+				anterior->siguiente = actual;
+			
+			delete eliminado;
+			cantidad--;
+			eliminadas++;
+		}
+		else
+		{
+			anterior = actual;
+			actual = actual->siguiente;
+		}
+	}
+	
+	return eliminadas;
+}
+
 NodoRuta* ListaRutas::getPrimero() const
 {
 	return primero;

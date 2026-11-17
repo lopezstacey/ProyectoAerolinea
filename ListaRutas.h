@@ -26,6 +26,8 @@ public:
 	NodoRuta* buscar(string codigo) const;
 	bool modificar(string codigo, string matriculaAeronave, string codigoVuelo);
 	bool eliminar(string codigo);
+	int eliminarPorVuelo(string codigoVuelo);
+	int eliminarPorAeronave(string matriculaAeronave);
 	NodoRuta* getPrimero() const;
 	int getCantidad() const;
 	void limpiar();
