@@ -18,6 +18,7 @@ public:
 		PLANIFICAR_VIAJE,
 		MIS_VUELOS,
 		MI_EQUIPAJE,
+		DESTINOS_ALCANZABLES,
 		GESTION_CIUDADES,
 		GESTION_AERONAVES,
 		GESTION_VUELOS,
@@ -34,7 +35,10 @@ private:
 	bool clienteDesplegado;
 	bool administracionDesplegada;
 	int opcionSeleccionada;
+	float yAdministracion() const;
+	float yBotonArboles() const;
 	void dibujarBoton(RenderWindow& ventana, float x, float y, float ancho, float alto, const string& texto, Color color);
+	void dibujarOpcion(RenderWindow& ventana, float y, const string& texto, bool seleccionada);
 	void dibujarTexto(RenderWindow& ventana, float x, float y, const string& texto, int tamano, Color color);
 	void dibujarRectanguloRedondeado(RenderWindow& ventana, float x, float y, float ancho, float alto, float radio, Color color);
 	

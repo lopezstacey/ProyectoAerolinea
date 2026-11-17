@@ -1,4 +1,3 @@
-
 #include "ArbolAVL.h"
 
 ArbolAVL::ArbolAVL()
@@ -8,18 +7,13 @@ ArbolAVL::ArbolAVL()
 
 int ArbolAVL::obtenerAltura(NodoAVL* nodo) const
 {
-	if (nodo == nullptr)
-		return 0;
-	
-	return nodo->altura;
+	return nodo == nullptr ? 0 : nodo->altura;
 }
 
 int ArbolAVL::obtenerBalance(NodoAVL* nodo) const
 {
-	if (nodo == nullptr)
-		return 0;
-	
-	return obtenerAltura(nodo->izquierdo) - obtenerAltura(nodo->derecho);
+	return nodo == nullptr ? 0 :
+		obtenerAltura(nodo->izquierdo) - obtenerAltura(nodo->derecho);
 }
 
 NodoAVL* ArbolAVL::rotacionDerecha(NodoAVL* nodo)
@@ -30,13 +24,13 @@ NodoAVL* ArbolAVL::rotacionDerecha(NodoAVL* nodo)
 	nuevo->derecho = nodo;
 	nodo->izquierdo = temporal;
 	
-	int alturaIzquierda = obtenerAltura(nodo->izquierdo);
-	int alturaDerecha = obtenerAltura(nodo->derecho);
-	nodo->altura = 1 + (alturaIzquierda > alturaDerecha ? alturaIzquierda : alturaDerecha);
+	int ai = obtenerAltura(nodo->izquierdo);
+	int ad = obtenerAltura(nodo->derecho);
+	nodo->altura = 1 + (ai > ad ? ai : ad);
 	
-	alturaIzquierda = obtenerAltura(nuevo->izquierdo);
-	alturaDerecha = obtenerAltura(nuevo->derecho);
-	nuevo->altura = 1 + (alturaIzquierda > alturaDerecha ? alturaIzquierda : alturaDerecha);
+	ai = obtenerAltura(nuevo->izquierdo);
+	ad = obtenerAltura(nuevo->derecho);
+	nuevo->altura = 1 + (ai > ad ? ai : ad);
 	
 	return nuevo;
 }
@@ -49,64 +43,84 @@ NodoAVL* ArbolAVL::rotacionIzquierda(NodoAVL* nodo)
 	nuevo->izquierdo = nodo;
 	nodo->derecho = temporal;
 	
-	int alturaIzquierda = obtenerAltura(nodo->izquierdo);
-	int alturaDerecha = obtenerAltura(nodo->derecho);
-	nodo->altura = 1 + (alturaIzquierda > alturaDerecha ? alturaIzquierda : alturaDerecha);
+	int ai = obtenerAltura(nodo->izquierdo);
+	int ad = obtenerAltura(nodo->derecho);
+	nodo->altura = 1 + (ai > ad ? ai : ad);
 	
-	alturaIzquierda = obtenerAltura(nuevo->izquierdo);
-	alturaDerecha = obtenerAltura(nuevo->derecho);
-	nuevo->altura = 1 + (alturaIzquierda > alturaDerecha ? alturaIzquierda : alturaDerecha);
+	ai = obtenerAltura(nuevo->izquierdo);
+	ad = obtenerAltura(nuevo->derecho);
+	nuevo->altura = 1 + (ai > ad ? ai : ad);
 	
 	return nuevo;
 }
 
-NodoAVL* ArbolAVL::insertar(NodoAVL* nodo, Pasajero pasajero)
+NodoAVL* ArbolAVL::insertar(NodoAVL* nodo, Pasajero pasajero, string codigoVuelo)
 {
 	if (nodo == nullptr)
-		return new NodoAVL(pasajero);
+		return new NodoAVL(pasajero, codigoVuelo);
 	
 	if (pasajero.getIdentificacion() < nodo->pasajero.getIdentificacion())
-		nodo->izquierdo = insertar(nodo->izquierdo, pasajero);
-	else if (pasajero.getIdentificacion() > nodo->pasajero.getIdentificacion())
-		nodo->derecho = insertar(nodo->derecho, pasajero);
-	else
-		return nodo;
+		nodo->izquierdo = insertar(nodo->izquierdo, pasajero, codigoVuelo);
 	
-	int alturaIzquierda = obtenerAltura(nodo->izquierdo);
-	int alturaDerecha = obtenerAltura(nodo->derecho);
-	nodo->altura = 1 + (alturaIzquierda > alturaDerecha ? alturaIzquierda : alturaDerecha);
+	else if (pasajero.getIdentificacion() > nodo->pasajero.getIdentificacion())
+		nodo->derecho = insertar(nodo->derecho, pasajero, codigoVuelo);
+	
+	else
+	{
+		nodo->pasajero = pasajero;
+		
+		if (!codigoVuelo.empty())
+			nodo->codigoVuelo = codigoVuelo;
+		
+		return nodo;
+	}
+	
+	int ai = obtenerAltura(nodo->izquierdo);
+	int ad = obtenerAltura(nodo->derecho);
+	
+	nodo->altura = 1 + (ai > ad ? ai : ad);
 	
 	int balance = obtenerBalance(nodo);
 	
-	if (balance > 1 && pasajero.getIdentificacion() < nodo->izquierdo->pasajero.getIdentificacion())
+	if (balance > 1 &&
+		pasajero.getIdentificacion() < nodo->izquierdo->pasajero.getIdentificacion())
 		return rotacionDerecha(nodo);
 	
-	if (balance < -1 && pasajero.getIdentificacion() > nodo->derecho->pasajero.getIdentificacion())
+	if (balance < -1 &&
+		pasajero.getIdentificacion() > nodo->derecho->pasajero.getIdentificacion())
 		return rotacionIzquierda(nodo);
 	
-	if (balance > 1 && pasajero.getIdentificacion() > nodo->izquierdo->pasajero.getIdentificacion())
+	if (balance > 1 &&
+		pasajero.getIdentificacion() > nodo->izquierdo->pasajero.getIdentificacion())
 	{
 		nodo->izquierdo = rotacionIzquierda(nodo->izquierdo);
 		return rotacionDerecha(nodo);
 	}
-	
-	if (balance < -1 && pasajero.getIdentificacion() < nodo->derecho->pasajero.getIdentificacion())
-	{
-		nodo->derecho = rotacionDerecha(nodo->derecho);
-		return rotacionIzquierda(nodo);
-	}
-	
-	return nodo;
+		
+		if (balance < -1 &&
+			pasajero.getIdentificacion() < nodo->derecho->pasajero.getIdentificacion())
+		{
+			nodo->derecho = rotacionDerecha(nodo->derecho);
+			return rotacionIzquierda(nodo);
+		}
+			
+			return nodo;
 }
 
 void ArbolAVL::insertar(Pasajero pasajero)
 {
-	raiz = insertar(raiz, pasajero);
+	raiz = insertar(raiz, pasajero, "");
+}
+
+void ArbolAVL::insertar(Pasajero pasajero, string codigoVuelo)
+{
+	raiz = insertar(raiz, pasajero, codigoVuelo);
 }
 
 NodoAVL* ArbolAVL::buscar(NodoAVL* nodo, string identificacion) const
 {
-	if (nodo == nullptr || nodo->pasajero.getIdentificacion() == identificacion)
+	if (nodo == nullptr ||
+		nodo->pasajero.getIdentificacion() == identificacion)
 		return nodo;
 	
 	if (identificacion < nodo->pasajero.getIdentificacion())
@@ -119,10 +133,26 @@ Pasajero* ArbolAVL::buscar(string identificacion) const
 {
 	NodoAVL* encontrado = buscar(raiz, identificacion);
 	
-	if (encontrado == nullptr)
-		return nullptr;
+	return encontrado == nullptr ? nullptr : &encontrado->pasajero;
+}
+
+bool ArbolAVL::asignarVuelo(string identificacion, string codigoVuelo)
+{
+	NodoAVL* encontrado = buscar(raiz, identificacion);
 	
-	return &encontrado->pasajero;
+	if (encontrado == nullptr || codigoVuelo.empty())
+		return false;
+	
+	encontrado->codigoVuelo = codigoVuelo;
+	
+	return true;
+}
+
+string ArbolAVL::buscarVuelo(string identificacion) const
+{
+	NodoAVL* encontrado = buscar(raiz, identificacion);
+	
+	return encontrado == nullptr ? "" : encontrado->codigoVuelo;
 }
 
 NodoAVL* ArbolAVL::getRaiz() const
@@ -145,7 +175,6 @@ void ArbolAVL::limpiar()
 	destruir(raiz);
 	raiz = nullptr;
 }
-
 
 ArbolAVL::~ArbolAVL()
 {

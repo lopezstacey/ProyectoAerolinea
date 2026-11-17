@@ -2,6 +2,7 @@
 #define BELLMANFORD_H
 #include "Grafo.h"
 #include <string>
+
 using namespace std;
 
 struct ResultadoBellmanFord
@@ -11,6 +12,8 @@ struct ResultadoBellmanFord
 	float distancia;
 	float costoTotal;
 	float duracionTotal;
+	string* ruta;
+	int cantidadRuta;
 };
 
 class BellmanFord

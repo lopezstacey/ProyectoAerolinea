@@ -4,6 +4,31 @@
 using namespace sf;
 using namespace std;
 
+namespace
+{
+	const float BOTON_X = 25.0f;
+	const float BOTON_ANCHO = 250.0f;
+	const float BOTON_ALTO = 48.0f;
+	const float Y_CLIENTE = 135.0f;
+	const float OPCION_ALTO = 40.0f;
+	const float OPCION_PASO = 45.0f;
+	const float Y_OPCIONES_CLIENTE = 190.0f;
+	const float Y_OPCIONES_ADMIN = 255.0f;
+	const float Y_ADMIN_CERRADO = 195.0f;
+	const float Y_ADMIN_CON_CLIENTE = 470.0f;
+	const float Y_ARBOLES_LIBRE = 255.0f;
+	const float Y_ARBOLES_CON_CLIENTE = 535.0f;
+	const float Y_ARBOLES_CON_ADMIN = 580.0f;
+	const float Y_INICIO = 730.0f;
+	const float INICIO_ALTO = 38.0f;
+	const int CANTIDAD_CLIENTE = 6;
+	const int CANTIDAD_ADMIN = 7;
+	const char* const NOMBRES_CLIENTE[CANTIDAD_CLIENTE] = { "EXPLORAR DESTINOS", "BUSCAR RUTAS","DESTINOS ALCANZABLES", "PLANIFICAR VIAJE", "MIS VUELOS", "MI EQUIPAJE"};
+	const int IDS_CLIENTE[CANTIDAD_CLIENTE] = { BarraLateral::EXPLORAR_DESTINOS, BarraLateral::BUSCAR_RUTAS,BarraLateral::DESTINOS_ALCANZABLES, BarraLateral::PLANIFICAR_VIAJE, BarraLateral::MIS_VUELOS, BarraLateral::MI_EQUIPAJE};
+	const char* const NOMBRES_ADMIN[CANTIDAD_ADMIN] = { "GESTIONAR CIUDADES", "GESTIONAR AERONAVES", "GESTIONAR VUELOS", "GESTIONAR RUTAS", "GESTIONAR TRIPULACION", "GESTIONAR PASAJEROS", "GESTIONAR MALETAS" };
+	const int IDS_ADMIN[CANTIDAD_ADMIN] = { BarraLateral::GESTION_CIUDADES, BarraLateral::GESTION_AERONAVES, BarraLateral::GESTION_VUELOS, BarraLateral::GESTION_RUTAS, BarraLateral::GESTION_TRIPULACION, BarraLateral::GESTION_PASAJEROS, BarraLateral::GESTION_MALETAS };
+}
+
 BarraLateral::BarraLateral()
 {
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
@@ -50,6 +75,22 @@ void BarraLateral::dibujarTexto(RenderWindow& ventana, float x, float y, const s
 	}
 }
 
+float BarraLateral::yAdministracion() const
+{
+	return clienteDesplegado ? Y_ADMIN_CON_CLIENTE : Y_ADMIN_CERRADO;
+}
+
+float BarraLateral::yBotonArboles() const
+{
+	if (clienteDesplegado)
+		return Y_ARBOLES_CON_CLIENTE;
+	
+	if (administracionDesplegada)
+		return Y_ARBOLES_CON_ADMIN;
+	
+	return Y_ARBOLES_LIBRE;
+}
+
 void BarraLateral::dibujarBoton(RenderWindow& ventana, float x, float y, float ancho, float alto, const string& texto, Color color)
 {
 	Vector2i mouse = Mouse::getPosition(ventana);
@@ -81,6 +122,30 @@ void BarraLateral::dibujarBoton(RenderWindow& ventana, float x, float y, float a
 	}
 }
 
+void BarraLateral::dibujarOpcion(RenderWindow& ventana, float y, const string& texto, bool seleccionada)
+{
+	Vector2i mouse = Mouse::getPosition(ventana);
+	bool encima = mouse.x >= BOTON_X && mouse.x <= BOTON_X + BOTON_ANCHO && mouse.y >= y && mouse.y <= y + OPCION_ALTO;
+	
+	if (seleccionada || encima)
+		dibujarRectanguloRedondeado(ventana, BOTON_X, y, BOTON_ANCHO, OPCION_ALTO, 10, seleccionada ? Color(225, 238, 226) : Color(240, 244, 240));
+	
+	if (fuenteCargada)
+	{
+		Text etiqueta;
+		etiqueta.setFont(fuente);
+		etiqueta.setString(texto);
+		etiqueta.setCharacterSize(14);
+		etiqueta.setFillColor(seleccionada ? Color(35, 65, 52) : Color(75, 80, 75));
+		if (seleccionada)
+			etiqueta.setStyle(Text::Bold);
+		
+		FloatRect limites = etiqueta.getLocalBounds();
+		etiqueta.setPosition(BOTON_X + 20 - limites.left, y + (OPCION_ALTO - limites.height) / 2 - limites.top);
+		ventana.draw(etiqueta);
+	}
+}
+
 int BarraLateral::procesarEvento(RenderWindow& ventana, Event evento)
 {
 	if (evento.type != Event::MouseButtonPressed || evento.mouseButton.button != Mouse::Left)
@@ -89,20 +154,22 @@ int BarraLateral::procesarEvento(RenderWindow& ventana, Event evento)
 	int x = evento.mouseButton.x;
 	int y = evento.mouseButton.y;
 	
-	if (x < 20 || x > 280)
+	if (x < BOTON_X || x > BOTON_X + BOTON_ANCHO)
 		return NINGUNA;
 	
-	if (y >= 725 && y <= 763)
+	if (y >= Y_INICIO && y <= Y_INICIO + INICIO_ALTO)
 		return INICIO;
 	
-	if (y >= 135 && y <= 183)
+	if (y >= Y_CLIENTE && y <= Y_CLIENTE + BOTON_ALTO)
 	{
 		clienteDesplegado = !clienteDesplegado;
 		administracionDesplegada = false;
 		return NINGUNA;
 	}
 	
-	if (y >= 195 && y <= 243)
+	float yAdmin = yAdministracion();
+	
+	if (y >= yAdmin && y <= yAdmin + BOTON_ALTO)
 	{
 		administracionDesplegada = !administracionDesplegada;
 		clienteDesplegado = false;
@@ -111,48 +178,28 @@ int BarraLateral::procesarEvento(RenderWindow& ventana, Event evento)
 	
 	if (clienteDesplegado)
 	{
-		if (y >= 255 && y <= 295)
-			return EXPLORAR_DESTINOS;
-		
-		if (y >= 300 && y <= 340)
-			return BUSCAR_RUTAS;
-		
-		if (y >= 345 && y <= 385)
-			return PLANIFICAR_VIAJE;
-		
-		if (y >= 390 && y <= 430)
-			return MIS_VUELOS;
-		
-		if (y >= 435 && y <= 475)
-			return MI_EQUIPAJE;
+		for (int i = 0; i < CANTIDAD_CLIENTE; i++)
+		{
+			float arriba = Y_OPCIONES_CLIENTE + i * OPCION_PASO;
+			if (y >= arriba && y <= arriba + OPCION_ALTO)
+				return IDS_CLIENTE[i];
+		}
 	}
 	
 	if (administracionDesplegada)
 	{
-		if (y >= 255 && y <= 295)
-			return GESTION_CIUDADES;
-		
-		if (y >= 300 && y <= 340)
-			return GESTION_AERONAVES;
-		
-		if (y >= 345 && y <= 385)
-			return GESTION_VUELOS;
-		
-		if (y >= 390 && y <= 430)
-			return GESTION_RUTAS;
-		
-		if (y >= 435 && y <= 475)
-			return GESTION_TRIPULACION;
-		
-		if (y >= 480 && y <= 520)
-			return GESTION_PASAJEROS;
-		
-		if (y >= 525 && y <= 565)
-			return GESTION_MALETAS;
-		
-		if (y >= 570 && y <= 610)
-			return ARBOLES_GRAFOS;
+		for (int i = 0; i < CANTIDAD_ADMIN; i++)
+		{
+			float arriba = Y_OPCIONES_ADMIN + i * OPCION_PASO;
+			if (y >= arriba && y <= arriba + OPCION_ALTO)
+				return IDS_ADMIN[i];
+		}
 	}
+	
+	float yArboles = yBotonArboles();
+	
+	if (y >= yArboles && y <= yArboles + BOTON_ALTO)
+		return ARBOLES_GRAFOS;
 	
 	return NINGUNA;
 }
@@ -162,36 +209,27 @@ void BarraLateral::dibujar(RenderWindow& ventana)
 	RectangleShape fondo(Vector2f(300, static_cast<float>(ventana.getSize().y)));
 	fondo.setFillColor(Color::White);
 	ventana.draw(fondo);
-	
-	dibujarTexto(ventana, 35, 35, "AERORUTAS", 29, Color(20, 30, 40));
-	dibujarTexto(ventana, 35, 78, "AEROLINEA DE COSTA RICA", 12, Color(45, 55, 65));
-	
-	dibujarRectanguloRedondeado(ventana, 25, 115, 250, 2, 1, Color(190, 200, 210));
-	
-	dibujarBoton(ventana, 25, 135, 250, 48, "PARTE CLIENTE", clienteDesplegado ? Color(225, 125, 30) : Color(28, 91, 145));
-	dibujarBoton(ventana, 25, 195, 250, 48, "PARTE ADMINISTRATIVA", administracionDesplegada ? Color(225, 125, 30) : Color(28, 91, 145));
+	dibujarTexto(ventana, 35, 35, "AERORUTAS", 29, Color(55, 70, 60));
+	dibujarTexto(ventana, 35, 78, "AEROLINEA DE COSTA RICA", 12, Color(120, 125, 120));
+	dibujarRectanguloRedondeado(ventana, 25, 115, 250, 2, 1, Color(215, 220, 215));
+	dibujarBoton(ventana, BOTON_X, Y_CLIENTE, BOTON_ANCHO, BOTON_ALTO, "PARTE CLIENTE", clienteDesplegado ? Color(55, 70, 60) : Color(90, 120, 95));
 	
 	if (clienteDesplegado)
 	{
-		dibujarTexto(ventana, 45, 260, "EXPLORAR DESTINOS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 305, "BUSCAR RUTAS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 350, "PLANIFICAR VIAJE", 14, Color::Black);
-		dibujarTexto(ventana, 45, 395, "MIS VUELOS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 440, "MI EQUIPAJE", 14, Color::Black);
+		for (int i = 0; i < CANTIDAD_CLIENTE; i++)
+			dibujarOpcion(ventana, Y_OPCIONES_CLIENTE + i * OPCION_PASO, NOMBRES_CLIENTE[i], opcionSeleccionada == IDS_CLIENTE[i]);
 	}
+	
+	dibujarBoton(ventana, BOTON_X, yAdministracion(), BOTON_ANCHO, BOTON_ALTO, "PARTE ADMINISTRATIVA", administracionDesplegada ? Color(55, 70, 60) : Color(90, 120, 95));
 	
 	if (administracionDesplegada)
 	{
-		dibujarTexto(ventana, 45, 260, "GESTIONAR CIUDADES", 14, Color::Black);
-		dibujarTexto(ventana, 45, 305, "GESTIONAR AERONAVES", 14, Color::Black);
-		dibujarTexto(ventana, 45, 350, "GESTIONAR VUELOS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 395, "GESTIONAR RUTAS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 440, "GESTIONAR TRIPULACION", 14, Color::Black);
-		dibujarTexto(ventana, 45, 485, "GESTIONAR PASAJEROS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 530, "GESTIONAR MALETAS", 14, Color::Black);
-		dibujarTexto(ventana, 45, 575, "ARBOLES Y GRAFOS", 14, Color::Black);
+		for (int i = 0; i < CANTIDAD_ADMIN; i++)
+			dibujarOpcion(ventana, Y_OPCIONES_ADMIN + i * OPCION_PASO, NOMBRES_ADMIN[i], opcionSeleccionada == IDS_ADMIN[i]);
 	}
-	dibujarBoton(ventana, 25, 730, 250, 38, "VOLVER AL INICIO", Color(28, 91, 145));
+	
+	dibujarBoton(ventana, BOTON_X, yBotonArboles(), BOTON_ANCHO, BOTON_ALTO, "ARBOLES Y GRAFOS", Color(90, 120, 95));
+	dibujarBoton(ventana, BOTON_X, Y_INICIO, BOTON_ANCHO, INICIO_ALTO, "VOLVER AL INICIO", Color(90, 120, 95));
 }
 
 int BarraLateral::getOpcionSeleccionada() const

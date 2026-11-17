@@ -10,7 +10,8 @@
 #include "ListaMaletas.h"
 #include "ListaVuelos.h"
 #include "ListaRutas.h"
-
+#include "GestorAsignaciones.h"
+#include "ArbolAVL.h"
 using namespace sf;
 
 class Aplicacion
@@ -25,6 +26,8 @@ private:
 	ListaMaletas listaMaletas;
 	ListaVuelos listaVuelos;
 	ListaRutas listaRutas;
+	GestorAsignaciones gestorAsignaciones;
+	ArbolAVL arbolPasajeros;
 	GestorPantallas gestorPantallas;
 	BarraLateral barraLateral;
 	Clock reloj;
@@ -37,5 +40,4 @@ public:
 	Aplicacion(Grafo* grafoCompartido);
 	void ejecutar();
 };
-
 #endif

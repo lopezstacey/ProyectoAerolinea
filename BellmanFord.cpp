@@ -7,28 +7,27 @@ bool BellmanFord::calcular(Grafo& grafo, string origen, bool porCosto, Resultado
 	cantidad = 0;
 	
 	int total = grafo.getCantidadVertices();
-	
-	if (total == 0)
+	if (total <= 0)
 		return false;
 	
 	NodoVertice** vertices = new NodoVertice*[total];
 	float* distancias = new float[total];
 	float* costos = new float[total];
 	float* duraciones = new float[total];
+	int* anteriores = new int[total];
 	
 	NodoVertice* actual = grafo.getPrimero();
-	
 	for (int i = 0; i < total; i++)
 	{
 		vertices[i] = actual;
 		distancias[i] = numeric_limits<float>::max();
-		costos[i] = 0;
-		duraciones[i] = 0;
+		costos[i] = 0.0f;
+		duraciones[i] = 0.0f;
+		anteriores[i] = -1;
 		actual = actual->siguiente;
 	}
 	
 	int indiceOrigen = -1;
-	
 	for (int i = 0; i < total; i++)
 	{
 		if (vertices[i]->ciudad.getCodigo() == origen)
@@ -44,49 +43,50 @@ bool BellmanFord::calcular(Grafo& grafo, string origen, bool porCosto, Resultado
 		delete[] distancias;
 		delete[] costos;
 		delete[] duraciones;
+		delete[] anteriores;
 		return false;
 	}
 	
-	distancias[indiceOrigen] = 0;
+	distancias[indiceOrigen] = 0.0f;
 	
-	for (int i = 0; i < total - 1; i++)
+	for (int vuelta = 0; vuelta < total - 1; vuelta++)
 	{
 		bool huboCambios = false;
 		
-		for (int j = 0; j < total; j++)
+		for (int i = 0; i < total; i++)
 		{
-			if (distancias[j] == numeric_limits<float>::max())
+			if (distancias[i] == numeric_limits<float>::max())
 				continue;
 			
-			NodoArista* arista = vertices[j]->conexiones;
-			
+			NodoArista* arista = vertices[i]->conexiones;
 			while (arista != nullptr)
 			{
-				int indiceDestino = -1;
-				
-				for (int k = 0; k < total; k++)
+				int destino = -1;
+				for (int j = 0; j < total; j++)
 				{
-					if (vertices[k]->ciudad.getCodigo() == arista->vuelo.getCodigoDestino())
+					if (vertices[j]->ciudad.getCodigo() ==
+						arista->vuelo.getCodigoDestino())
 					{
-						indiceDestino = k;
+						destino = j;
 						break;
 					}
 				}
 				
-				if (indiceDestino != -1)
+				if (destino != -1)
 				{
-					float peso = porCosto ? arista->vuelo.getCosto() : arista->vuelo.getDuracion();
-					float nuevaDistancia = distancias[j] + peso;
+					float peso = porCosto ? arista->vuelo.getCosto()
+						: arista->vuelo.getDuracion();
+					float nueva = distancias[i] + peso;
 					
-					if (nuevaDistancia < distancias[indiceDestino])
+					if (nueva < distancias[destino])
 					{
-						distancias[indiceDestino] = nuevaDistancia;
-						costos[indiceDestino] = costos[j] + arista->vuelo.getCosto();
-						duraciones[indiceDestino] = duraciones[j] + arista->vuelo.getDuracion();
+						distancias[destino] = nueva;
+						costos[destino] = costos[i] + arista->vuelo.getCosto();
+						duraciones[destino] = duraciones[i] + arista->vuelo.getDuracion();
+						anteriores[destino] = i;
 						huboCambios = true;
 					}
 				}
-				
 				arista = arista->siguiente;
 			}
 		}
@@ -101,65 +101,82 @@ bool BellmanFord::calcular(Grafo& grafo, string origen, bool porCosto, Resultado
 			continue;
 		
 		NodoArista* arista = vertices[i]->conexiones;
-		
 		while (arista != nullptr)
 		{
-			int indiceDestino = -1;
-			
+			int destino = -1;
 			for (int j = 0; j < total; j++)
 			{
-				if (vertices[j]->ciudad.getCodigo() == arista->vuelo.getCodigoDestino())
+				if (vertices[j]->ciudad.getCodigo() ==
+					arista->vuelo.getCodigoDestino())
 				{
-					indiceDestino = j;
+					destino = j;
 					break;
 				}
 			}
 			
-			if (indiceDestino != -1)
+			if (destino != -1)
 			{
-				float peso = porCosto ? arista->vuelo.getCosto() : arista->vuelo.getDuracion();
-				
-				if (distancias[i] + peso < distancias[indiceDestino])
+				float peso = porCosto ? arista->vuelo.getCosto()
+					: arista->vuelo.getDuracion();
+				if (distancias[i] + peso < distancias[destino])
 				{
 					delete[] vertices;
 					delete[] distancias;
 					delete[] costos;
 					delete[] duraciones;
+					delete[] anteriores;
 					return false;
 				}
 			}
-			
 			arista = arista->siguiente;
 		}
 	}
 	
 	for (int i = 0; i < total; i++)
-	{
 		if (distancias[i] != numeric_limits<float>::max())
 			cantidad++;
-	}
 	
 	resultados = new ResultadoBellmanFord[cantidad];
-	
-	int posicion = 0;
+	int posResultado = 0;
 	
 	for (int i = 0; i < total; i++)
 	{
-		if (distancias[i] != numeric_limits<float>::max())
+		if (distancias[i] == numeric_limits<float>::max())
+			continue;
+		
+		ResultadoBellmanFord& r = resultados[posResultado];
+		r.codigoCiudad = vertices[i]->ciudad.getCodigo();
+		r.nombreCiudad = vertices[i]->ciudad.getNombre();
+		r.distancia = distancias[i];
+		r.costoTotal = costos[i];
+		r.duracionTotal = duraciones[i];
+		r.ruta = nullptr;
+		r.cantidadRuta = 0;
+		
+		int* indices = new int[total];
+		int cantidadIndices = 0;
+		int cursor = i;
+		
+		while (cursor != -1 && cantidadIndices < total)
 		{
-			resultados[posicion].codigoCiudad = vertices[i]->ciudad.getCodigo();
-			resultados[posicion].nombreCiudad = vertices[i]->ciudad.getNombre();
-			resultados[posicion].distancia = distancias[i];
-			resultados[posicion].costoTotal = costos[i];
-			resultados[posicion].duracionTotal = duraciones[i];
-			posicion++;
+			indices[cantidadIndices++] = cursor;
+			cursor = anteriores[cursor];
 		}
+		
+		r.cantidadRuta = cantidadIndices;
+		r.ruta = new string[cantidadIndices];
+		
+		for (int k = 0; k < cantidadIndices; k++)
+			r.ruta[k] = vertices[indices[cantidadIndices - 1 - k]]->ciudad.getNombre();
+		
+		delete[] indices;
+		posResultado++;
 	}
 	
 	delete[] vertices;
 	delete[] distancias;
 	delete[] costos;
 	delete[] duraciones;
-	
+	delete[] anteriores;
 	return true;
 }
