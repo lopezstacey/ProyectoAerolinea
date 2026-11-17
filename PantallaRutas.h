@@ -4,6 +4,7 @@
 #include "ListaRutas.h"
 #include "ListaAeronaves.h"
 #include "ListaVuelos.h"
+#include "Grafo.h"
 #include <SFML/Graphics.hpp>
 #include <string>
 
@@ -16,6 +17,7 @@ private:
 	ListaRutas* listaRutas;
 	ListaAeronaves* listaAeronaves;
 	ListaVuelos* listaVuelos;
+	Grafo* grafo;
 	Font fuente;
 	bool fuenteCargada;
 	string codigo;
@@ -30,8 +32,13 @@ private:
 	bool desplegarVuelos;
 	bool cursorVisible;
 	float tiempoCursor;
+	int desplazamientoLista;
+	int desplazamientoAeronaves;
+	int desplazamientoVuelos;
+	string nombreCiudad(const string& codigo);
+	string descripcionVuelo(const string& codigoVuelo);
 public:
-	PantallaGestionRutas(ListaRutas* listaRutas, ListaAeronaves* listaAeronaves, ListaVuelos* listaVuelos);
+	PantallaGestionRutas(ListaRutas* listaRutas, ListaAeronaves* listaAeronaves, ListaVuelos* listaVuelos, Grafo* grafo = nullptr);
 	void procesarEventos(RenderWindow& ventana, Event evento);
 	void actualizar(float tiempo);
 	void dibujar(RenderWindow& ventana);

@@ -21,6 +21,7 @@ private:
 	string rutaImagen;
 	int capacidad;
 	int campoActivo;
+	int desplazamientoLista;
 	bool editando;
 	bool confirmarEliminar;
 	bool imagenCargada;

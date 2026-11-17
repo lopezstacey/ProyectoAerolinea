@@ -4,6 +4,7 @@
 #include "ListaPasajeros.h"
 #include "ListaMaletas.h"
 #include "GestorPantallas.h"
+#include "Grafo.h"                      
 #include <SFML/Graphics.hpp>
 #include <string>
 
@@ -16,6 +17,7 @@ private:
 	ListaPasajeros* listaPasajeros;
 	ListaMaletas* listaMaletas;
 	GestorPantallas* gestorPantallas;
+	Grafo* grafo;                       
 	Font fuente;
 	bool fuenteCargada;
 	string identificacion;
@@ -25,14 +27,14 @@ private:
 	string identificacionSeleccionada;
 	string mensaje;
 	int campoActivo;
+	int desplazamientoLista;
 	bool editando;
 	bool confirmarEliminar;
 	bool llevaMaleta;
 	bool cursorVisible;
-	float tiempoCursor;
-	
+	float tiempoCursor;	
 public:
-	PantallaPasajeros(ListaPasajeros* listaPasajeros, ListaMaletas* listaMaletas, GestorPantallas* gestorPantallas);
+	PantallaPasajeros(ListaPasajeros* listaPasajeros, ListaMaletas* listaMaletas, GestorPantallas* gestorPantallas, Grafo* grafo = nullptr);
 	void procesarEventos(RenderWindow& ventana, Event evento);
 	void actualizar(float tiempo);
 	void dibujar(RenderWindow& ventana);

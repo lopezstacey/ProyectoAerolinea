@@ -12,11 +12,13 @@ PantallaInicio::PantallaInicio()
 	if (imagenCargada)
 	{
 		imagenFondo.setTexture(texturaFondo);
-		
 		Vector2u tamano = texturaFondo.getSize();
-		
+		float anchoDisponible = 1200.0f;
+		float altoDisponible = 800.0f;
+		float escalaX = anchoDisponible / tamano.x;
+		float escalaY = altoDisponible / tamano.y;
 		imagenFondo.setPosition(300, 0);
-		imagenFondo.setScale(1500.0f / tamano.x, 800.0f / tamano.y);
+		imagenFondo.setScale(escalaX, escalaY);
 	}
 	else
 	{
@@ -34,12 +36,14 @@ void PantallaInicio::actualizar(float tiempo)
 
 void PantallaInicio::dibujar(RenderWindow& ventana)
 {
-	RectangleShape fondo(Vector2f(1500, 800));
+	RectangleShape fondo(Vector2f(1200, 800));
 	fondo.setPosition(300, 0);
 	fondo.setFillColor(Color(20, 75, 130));
+	
 	ventana.draw(fondo);
 	
 	if (imagenCargada)
+	{
 		ventana.draw(imagenFondo);
+	}
 }
-
