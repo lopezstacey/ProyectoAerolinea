@@ -1,97 +1,108 @@
 #include "Prim.h"
 #include <limits>
 
-bool Prim::calcular(Grafo& grafo, ResultadoPrim*& resultado, int& cantidad, float& costoTotal)
+bool Prim::calcular(Grafo& grafo, string codigoInicio, ResultadoExpansion& r)
 {
-	resultado = nullptr;
-	cantidad = 0;
-	costoTotal = 0;
+	NodoArista** mejor = nullptr;
 	
-	int total = grafo.getCantidadVertices();
-	
-	if (total == 0)
+	if (!prepararGrafoNoDirigido(grafo, true, r, mejor))
 		return false;
 	
-	if (total == 1)
-		return true;
+	int n = r.cantidadCiudades;
+	const float INFINITO = numeric_limits<float>::max();
 	
-	NodoVertice** vertices = new NodoVertice*[total];
-	bool* visitados = new bool[total];
-	ResultadoPrim* seleccionados = new ResultadoPrim[total - 1];
+	int inicio = buscarIndiceCiudad(r, codigoInicio);
 	
-	NodoVertice* actual = grafo.getPrimero();
+	if (inicio < 0)
+		inicio = 0;
 	
-	for (int i = 0; i < total; i++)
+	r.indiceInicio = inicio;
+	r.pasos = new AristaExpansion[n];
+	r.cantidadPasos = 0;
+	
+	bool* enArbol = new bool[n];
+	float* menorCosto = new float[n];
+	int* padre = new int[n];
+	
+	for (int i = 0; i < n; i++)
 	{
-		vertices[i] = actual;
-		visitados[i] = false;
-		actual = actual->siguiente;
+		enArbol[i] = false;
+		menorCosto[i] = INFINITO;
+		padre[i] = -1;
 	}
 	
-	visitados[0] = true;
+	int raiz = inicio;
 	
-	while (cantidad < total - 1)
+	while (raiz != -1)
 	{
-		float menorCosto = numeric_limits<float>::max();
-		int indiceOrigen = -1;
-		int indiceDestino = -1;
-		NodoArista* mejorArista = nullptr;
+		enArbol[raiz] = true;
 		
-		for (int i = 0; i < total; i++)
+		for (int j = 0; j < n; j++)
 		{
-			NodoArista* arista = vertices[i]->conexiones;
+			if (enArbol[j])
+				continue;
 			
-			while (arista != nullptr)
+			NodoArista* vuelo = mejor[raiz * n + j];
+			menorCosto[j] = vuelo != nullptr ? vuelo->vuelo.getCosto() : INFINITO;
+			padre[j] = vuelo != nullptr ? raiz : -1;
+		}
+		
+		while (true)
+		{
+			int elegida = -1;
+			
+			for (int j = 0; j < n; j++)
 			{
-				int destino = -1;
+				if (!enArbol[j] && menorCosto[j] < INFINITO &&
+					(elegida == -1 || menorCosto[j] < menorCosto[elegida]))
+					elegida = j;
+			}
+			
+			if (elegida == -1)
+				break;
+			
+			NodoArista* vuelo = mejor[padre[elegida] * n + elegida];
+			AristaExpansion& paso = r.pasos[r.cantidadPasos++];
+			paso.origen = padre[elegida];
+			paso.destino = elegida;
+			paso.codigoVuelo = vuelo->vuelo.getCodigo();
+			paso.costo = vuelo->vuelo.getCosto();
+			paso.duracion = vuelo->vuelo.getDuracion();
+			paso.aceptada = true;
+			
+			enArbol[elegida] = true;
+			
+			for (int k = 0; k < n; k++)
+			{
+				if (enArbol[k])
+					continue;
 				
-				for (int j = 0; j < total; j++)
+				NodoArista* candidata = mejor[elegida * n + k];
+				
+				if (candidata != nullptr && candidata->vuelo.getCosto() < menorCosto[k])
 				{
-					if (vertices[j]->ciudad.getCodigo() == arista->vuelo.getCodigoDestino())
-					{
-						destino = j;
-						break;
-					}
+					menorCosto[k] = candidata->vuelo.getCosto();
+					padre[k] = elegida;
 				}
-				
-				if (destino != -1 && i != destino && visitados[i] != visitados[destino])
-				{
-					if (arista->vuelo.getCosto() < menorCosto)
-					{
-						menorCosto = arista->vuelo.getCosto();
-						indiceOrigen = i;
-						indiceDestino = destino;
-						mejorArista = arista;
-					}
-				}
-				
-				arista = arista->siguiente;
 			}
 		}
+		raiz = -1;
 		
-		if (mejorArista == nullptr)
+		for (int i = 0; i < n; i++)
 		{
-			delete[] vertices;
-			delete[] visitados;
-			delete[] seleccionados;
-			return false;
+			if (!enArbol[i])
+			{
+				raiz = i;
+				break;
+			}
 		}
-		
-		seleccionados[cantidad].codigoOrigen = mejorArista->vuelo.getCodigoOrigen();
-		seleccionados[cantidad].codigoDestino = mejorArista->vuelo.getCodigoDestino();
-		seleccionados[cantidad].costo = mejorArista->vuelo.getCosto();
-		seleccionados[cantidad].duracion = mejorArista->vuelo.getDuracion();
-		
-		costoTotal += mejorArista->vuelo.getCosto();
-		visitados[indiceOrigen] = true;
-		visitados[indiceDestino] = true;
-		cantidad++;
 	}
 	
-	resultado = seleccionados;
+	delete[] enArbol;
+	delete[] menorCosto;
+	delete[] padre;
+	delete[] mejor;
 	
-	delete[] vertices;
-	delete[] visitados;
-	
+	finalizarResultado(r);
 	return true;
 }

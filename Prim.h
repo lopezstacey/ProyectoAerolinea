@@ -1,21 +1,14 @@
 #ifndef PRIM_H
 #define PRIM_H
-#include "Grafo.h"
+#include "ArbolExpansion.h"
 #include <string>
-using namespace std;
 
-struct ResultadoPrim
-{
-	string codigoOrigen;
-	string codigoDestino;
-	float costo;
-	float duracion;
-};
+using namespace std;
 
 class Prim
 {
 public:
-	bool calcular(Grafo& grafo, ResultadoPrim*& resultado, int& cantidad, float& costoTotal);
+	bool calcular(Grafo& grafo, string codigoInicio, ResultadoExpansion& resultado);
 };
 
 #endif
