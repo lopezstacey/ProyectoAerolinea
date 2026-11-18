@@ -1,159 +1,157 @@
-
 #include "Kruskal.h"
 
-static int buscarRaiz(int padre[], int posicion)
+namespace
 {
-	if (padre[posicion] != posicion)
-		padre[posicion] = buscarRaiz(padre, padre[posicion]);
-	
-	return padre[posicion];
-}
-
-static bool unirConjuntos(int padre[], int rango[], int origen, int destino)
-{
-	int raizOrigen = buscarRaiz(padre, origen);
-	int raizDestino = buscarRaiz(padre, destino);
-	
-	if (raizOrigen == raizDestino)
-		return false;
-	
-	if (rango[raizOrigen] < rango[raizDestino])
-		padre[raizOrigen] = raizDestino;
-	else if (rango[raizOrigen] > rango[raizDestino])
-		padre[raizDestino] = raizOrigen;
-	else
+	void mezclar(AristaExpansion* a, AristaExpansion* aux, int izq, int medio, int der)
 	{
-		padre[raizDestino] = raizOrigen;
-		rango[raizOrigen]++;
-	}
-	
-	return true;
-}
-
-bool Kruskal::calcular(Grafo& grafo, ResultadoKruskal*& resultado, int& cantidad, float& duracionTotal)
-{
-	resultado = nullptr;
-	cantidad = 0;
-	duracionTotal = 0;
-	
-	int totalVertices = grafo.getCantidadVertices();
-	
-	if (totalVertices == 0)
-		return false;
-	
-	if (totalVertices == 1)
-		return true;
-	
-	int totalAristas = 0;
-	NodoVertice* vertice = grafo.getPrimero();
-	
-	while (vertice != nullptr)
-	{
-		NodoArista* arista = vertice->conexiones;
+		int i = izq;
+		int j = medio + 1;
+		int k = izq;
 		
-		while (arista != nullptr)
+		while (i <= medio && j <= der)
 		{
-			totalAristas++;
-			arista = arista->siguiente;
+			if (a[i].duracion <= a[j].duracion)
+				aux[k++] = a[i++];
+			else
+				aux[k++] = a[j++];
 		}
 		
-		vertice = vertice->siguiente;
+		while (i <= medio)
+			aux[k++] = a[i++];
+		
+		while (j <= der)
+			aux[k++] = a[j++];
+		
+		for (int p = izq; p <= der; p++)
+			a[p] = aux[p];
 	}
 	
-	if (totalAristas == 0)
+	void ordenarPorDuracion(AristaExpansion* a, AristaExpansion* aux, int izq, int der)
+	{
+		if (izq >= der)
+			return;
+		
+		int medio = izq + (der - izq) / 2;
+		ordenarPorDuracion(a, aux, izq, medio);
+		ordenarPorDuracion(a, aux, medio + 1, der);
+		mezclar(a, aux, izq, medio, der);
+	}
+	
+	int buscarRaiz(int* padre, int x)
+	{
+		int raiz = x;
+		
+		while (padre[raiz] != raiz)
+			raiz = padre[raiz];
+		
+		while (padre[x] != raiz)
+		{
+			int siguiente = padre[x];
+			padre[x] = raiz;
+			x = siguiente;
+		}
+		
+		return raiz;
+	}
+	
+	void unir(int* padre, int* rango, int a, int b)
+	{
+		if (rango[a] < rango[b])
+			padre[a] = b;
+		else if (rango[a] > rango[b])
+			padre[b] = a;
+		else
+		{
+			padre[b] = a;
+			rango[a]++;
+		}
+	}
+}
+
+bool Kruskal::calcular(Grafo& grafo, ResultadoExpansion& r)
+{
+	NodoArista** mejor = nullptr;
+	
+	if (!prepararGrafoNoDirigido(grafo, false, r, mejor))
 		return false;
 	
-	ResultadoKruskal* aristas = new ResultadoKruskal[totalAristas];
-	NodoVertice** vertices = new NodoVertice*[totalVertices];
+	int n = r.cantidadCiudades;
+	r.indiceInicio = -1;
 	
-	vertice = grafo.getPrimero();
+	int total = 0;
 	
-	for (int i = 0; i < totalVertices; i++)
+	for (int i = 0; i < n; i++)
 	{
-		vertices[i] = vertice;
-		vertice = vertice->siguiente;
+		for (int j = i + 1; j < n; j++)
+		{
+			if (mejor[i * n + j] != nullptr)
+				total++;
+		}
 	}
 	
-	int posicion = 0;
+	r.pasos = new AristaExpansion[total > 0 ? total : 1];
+	r.cantidadPasos = 0;
 	
-	for (int i = 0; i < totalVertices; i++)
+	int cantidad = 0;
+	
+	for (int i = 0; i < n; i++)
 	{
-		NodoArista* arista = vertices[i]->conexiones;
-		
-		while (arista != nullptr)
+		for (int j = i + 1; j < n; j++)
 		{
-			aristas[posicion].codigoOrigen = arista->vuelo.getCodigoOrigen();
-			aristas[posicion].codigoDestino = arista->vuelo.getCodigoDestino();
-			aristas[posicion].costo = arista->vuelo.getCosto();
-			aristas[posicion].duracion = arista->vuelo.getDuracion();
-			posicion++;
+			NodoArista* vuelo = mejor[i * n + j];
 			
-			arista = arista->siguiente;
+			if (vuelo == nullptr)
+				continue;
+			
+			AristaExpansion& a = r.pasos[cantidad++];
+			a.origen = i;
+			a.destino = j;
+			a.codigoVuelo = vuelo->vuelo.getCodigo();
+			a.costo = vuelo->vuelo.getCosto();
+			a.duracion = vuelo->vuelo.getDuracion();
+			a.aceptada = false;
 		}
 	}
 	
-	for (int i = 1; i < totalAristas; i++)
-	{
-		ResultadoKruskal actual = aristas[i];
-		int j = i - 1;
-		
-		while (j >= 0 && aristas[j].duracion > actual.duracion)
-		{
-			aristas[j + 1] = aristas[j];
-			j--;
-		}
-		
-		aristas[j + 1] = actual;
-	}
+	delete[] mejor;
 	
-	int* padre = new int[totalVertices];
-	int* rango = new int[totalVertices];
+	AristaExpansion* aux = new AristaExpansion[total > 0 ? total : 1];
+	ordenarPorDuracion(r.pasos, aux, 0, total - 1);
+	delete[] aux;
 	
-	for (int i = 0; i < totalVertices; i++)
+	int* padre = new int[n];
+	int* rango = new int[n];
+	
+	for (int i = 0; i < n; i++)
 	{
 		padre[i] = i;
 		rango[i] = 0;
 	}
 	
-	ResultadoKruskal* seleccionadas = new ResultadoKruskal[totalVertices - 1];
+	int aceptadas = 0;
+	int procesadas = 0;
 	
-	for (int i = 0; i < totalAristas && cantidad < totalVertices - 1; i++)
+	while (procesadas < total && aceptadas < n - 1)
 	{
-		int indiceOrigen = -1;
-		int indiceDestino = -1;
+		AristaExpansion& a = r.pasos[procesadas];
+		int raizA = buscarRaiz(padre, a.origen);
+		int raizB = buscarRaiz(padre, a.destino);
 		
-		for (int j = 0; j < totalVertices; j++)
+		if (raizA != raizB)
 		{
-			if (vertices[j]->ciudad.getCodigo() == aristas[i].codigoOrigen)
-				indiceOrigen = j;
-			
-			if (vertices[j]->ciudad.getCodigo() == aristas[i].codigoDestino)
-				indiceDestino = j;
+			unir(padre, rango, raizA, raizB);
+			a.aceptada = true;
+			aceptadas++;
 		}
 		
-		if (indiceOrigen == -1 || indiceDestino == -1 || indiceOrigen == indiceDestino)
-			continue;
-		
-		if (unirConjuntos(padre, rango, indiceOrigen, indiceDestino))
-		{
-			seleccionadas[cantidad] = aristas[i];
-			duracionTotal += aristas[i].duracion;
-			cantidad++;
-		}
+		procesadas++;
 	}
 	
-	delete[] aristas;
-	delete[] vertices;
+	r.cantidadPasos = procesadas;
+	
 	delete[] padre;
 	delete[] rango;
 	
-	if (cantidad != totalVertices - 1)
-	{
-		delete[] seleccionadas;
-		return false;
-	}
-	
-	resultado = seleccionadas;
-	
+	finalizarResultado(r);
 	return true;
 }

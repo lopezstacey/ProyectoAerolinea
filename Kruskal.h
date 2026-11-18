@@ -1,21 +1,13 @@
 #ifndef KRUSKAL_H
 #define KRUSKAL_H
-#include "Grafo.h"
-#include <string>
-using namespace std;
+#include "ArbolExpansion.h"
 
-struct ResultadoKruskal
-{
-	string codigoOrigen;
-	string codigoDestino;
-	float costo;
-	float duracion;
-};
+using namespace std;
 
 class Kruskal
 {
 public:
-	bool calcular(Grafo& grafo, ResultadoKruskal*& resultado, int& cantidad, float& duracionTotal);
+	bool calcular(Grafo& grafo, ResultadoExpansion& resultado);
 };
 
 #endif

@@ -20,6 +20,25 @@ Grafo::Grafo()
 {
 	primero = nullptr;
 	cantidadVertices = 0;
+	arbolCiudades.limpiar();
+}
+
+ArbolABB* Grafo::getArbolCiudades()
+{
+	return &arbolCiudades;
+}
+
+void Grafo::reconstruirArbol()
+{
+	arbolCiudades.limpiar();
+	
+	NodoVertice* actual = primero;
+	
+	while (actual != nullptr)
+	{
+		arbolCiudades.insertar(actual->ciudad.getNombre(), actual->ciudad.getCodigo());
+		actual = actual->siguiente;
+	}
 }
 
 Grafo::~Grafo()
@@ -46,6 +65,9 @@ bool Grafo::agregarCiudad(Ciudad ciudad)
 	if (existeCiudad(codigo))
 		return false;
 	
+	if (arbolCiudades.contiene(nombre))
+		return false;
+	
 	Ciudad ciudadValidada(codigo, nombre, ciudad.getPosicionX(), ciudad.getPosicionY());
 	
 	NodoVertice* nuevo = new NodoVertice(ciudadValidada);
@@ -63,6 +85,7 @@ bool Grafo::agregarCiudad(Ciudad ciudad)
 	}
 	
 	cantidadVertices++;
+	arbolCiudades.insertar(nombre, codigo);
 	
 	return true;
 }
@@ -243,9 +266,16 @@ bool Grafo::modificarCiudad(string codigo, string nombre, float x, float y)
 	if (ciudad == nullptr)
 		return false;
 	
+	int pasos = 0;
+	NodoABB* conMismoNombre = arbolCiudades.buscar(nombre, nullptr, pasos);
+	
+	if (conMismoNombre != nullptr && conMismoNombre->codigo != codigo)
+		return false;
+	
 	ciudad->ciudad.setNombre(nombre);
 	ciudad->ciudad.setPosicionX(x);
 	ciudad->ciudad.setPosicionY(y);
+	reconstruirArbol();
 	
 	return true;
 }
@@ -315,6 +345,7 @@ bool Grafo::eliminarCiudad(string codigo)
 	
 	delete actual;
 	cantidadVertices--;
+	reconstruirArbol();
 	
 	return true;
 }

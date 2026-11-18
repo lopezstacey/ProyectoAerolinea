@@ -3,6 +3,7 @@
 #include <string>
 #include "Ciudad.h"
 #include "Vuelo.h"
+#include "ArbolABB.h"
 
 using namespace std;
 
@@ -37,6 +38,8 @@ class Grafo
 private:
 	NodoVertice* primero;
 	int cantidadVertices;
+	ArbolABB arbolCiudades;	
+	void reconstruirArbol();
 public:
 	Grafo();
 	~Grafo();
@@ -48,6 +51,7 @@ public:
 	bool existeCiudad(string codigo) const;
 	NodoVertice* buscarCiudad(string codigo) const;
 	NodoVertice* getPrimero() const;
+	ArbolABB* getArbolCiudades();
 	int getCantidadVertices() const;
 	bool modificarCiudad(string codigo, string nombre, float x, float y);
 	bool eliminarCiudad(string codigo);
