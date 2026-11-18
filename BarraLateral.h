@@ -26,7 +26,11 @@ public:
 		GESTION_TRIPULACION,
 		GESTION_PASAJEROS,
 		GESTION_MALETAS,
-		ARBOLES_GRAFOS
+		ARBOLES_GRAFOS,
+		ARBOL_ABB, 
+		ARBOL_AVL, 
+		ARBOL_PRIM, 
+		ARBOL_KRUSKAL
 	};
 	
 private:
@@ -34,6 +38,7 @@ private:
 	bool fuenteCargada;
 	bool clienteDesplegado;
 	bool administracionDesplegada;
+	bool arbolesDesplegado;
 	int opcionSeleccionada;
 	float yAdministracion() const;
 	float yBotonArboles() const;

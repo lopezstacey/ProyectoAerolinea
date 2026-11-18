@@ -1,11 +1,10 @@
 #include "ArbolABB.h"
-#include <iostream>
-
-using namespace std;
+#include <cctype>
 
 ArbolABB::ArbolABB()
 {
 	raiz = nullptr;
+	cantidad = 0;
 }
 
 ArbolABB::~ArbolABB()
@@ -13,88 +12,113 @@ ArbolABB::~ArbolABB()
 	limpiar();
 }
 
-NodoABB* ArbolABB::insertar(NodoABB* actual, Ciudad ciudad)
+string ArbolABB::minusculas(const string& texto)
+{
+	string resultado = texto;
+	
+	for (size_t i = 0; i < resultado.size(); i++)
+		resultado[i] = static_cast<char>(tolower(static_cast<unsigned char>(resultado[i])));
+	
+	return resultado;
+}
+
+int ArbolABB::comparar(const string& a, const string& b)
+{
+	string x = minusculas(a);
+	string y = minusculas(b);
+	
+	if (x < y)
+		return -1;
+	if (x > y)
+		return 1;
+	return 0;
+}
+
+NodoABB* ArbolABB::insertar(NodoABB* actual, NodoABB* nuevo, bool& insertado)
 {
 	if (actual == nullptr)
-		return new NodoABB(ciudad);
+	{
+		insertado = true;
+		return nuevo;
+	}
 	
-	if (ciudad.getCodigo() < actual->ciudad.getCodigo())
-		actual->izquierdo = insertar(actual->izquierdo, ciudad);
-	else if (ciudad.getCodigo() > actual->ciudad.getCodigo())
-		actual->derecho = insertar(actual->derecho, ciudad);
+	int resultado = comparar(nuevo->nombre, actual->nombre);
+	
+	if (resultado < 0)
+		actual->izquierdo = insertar(actual->izquierdo, nuevo, insertado);
+	else if (resultado > 0)
+		actual->derecho = insertar(actual->derecho, nuevo, insertado);
 	
 	return actual;
 }
 
-void ArbolABB::insertar(Ciudad ciudad)
+bool ArbolABB::insertar(string nombre, string codigo)
 {
-	raiz = insertar(raiz, ciudad);
-}
-
-NodoABB* ArbolABB::buscar(NodoABB* actual, string codigo) const
-{
-	if (actual == nullptr || actual->ciudad.getCodigo() == codigo)
-		return actual;
+	if (nombre.empty())
+		return false;
 	
-	if (codigo < actual->ciudad.getCodigo())
-		return buscar(actual->izquierdo, codigo);
+	NodoABB* nuevo = new NodoABB(nombre, codigo);
+	bool insertado = false;
 	
-	return buscar(actual->derecho, codigo);
-}
-
-Ciudad* ArbolABB::buscar(string codigo) const
-{
-	NodoABB* encontrado = buscar(raiz, codigo);
+	raiz = insertar(raiz, nuevo, insertado);
 	
-	if (encontrado == nullptr)
-		return nullptr;
-	
-	return &encontrado->ciudad;
-}
-
-void ArbolABB::recorridoInorden(NodoABB* actual) const
-{
-	if (actual != nullptr)
+	if (!insertado)
 	{
-		recorridoInorden(actual->izquierdo);
-		cout << actual->ciudad.getCodigo() << " - " << actual->ciudad.getNombre() << endl;
-		recorridoInorden(actual->derecho);
+		delete nuevo;
+		return false;
 	}
+	
+	cantidad++;
+	return true;
 }
 
-void ArbolABB::recorridoPreorden(NodoABB* actual) const
+NodoABB* ArbolABB::buscar(const string& nombre, NodoABB** camino, int& pasos) const
 {
-	if (actual != nullptr)
+	pasos = 0;
+	NodoABB* actual = raiz;
+	
+	while (actual != nullptr)
 	{
-		cout << actual->ciudad.getCodigo() << " - " << actual->ciudad.getNombre() << endl;
-		recorridoPreorden(actual->izquierdo);
-		recorridoPreorden(actual->derecho);
+		if (camino != nullptr)
+			camino[pasos] = actual;
+		pasos++;
+		
+		int resultado = comparar(nombre, actual->nombre);
+		
+		if (resultado == 0)
+			return actual;
+		
+		actual = resultado < 0 ? actual->izquierdo : actual->derecho;
 	}
+	
+	return nullptr;
 }
 
-void ArbolABB::recorridoPostorden(NodoABB* actual) const
+bool ArbolABB::contiene(const string& nombre) const
 {
-	if (actual != nullptr)
-	{
-		recorridoPostorden(actual->izquierdo);
-		recorridoPostorden(actual->derecho);
-		cout << actual->ciudad.getCodigo() << " - " << actual->ciudad.getNombre() << endl;
-	}
+	int pasos = 0;
+	return buscar(nombre, nullptr, pasos) != nullptr;
 }
 
-void ArbolABB::inorden() const
+int ArbolABB::getCantidad() const
 {
-	recorridoInorden(raiz);
+	return cantidad;
 }
 
-void ArbolABB::preorden() const
+int ArbolABB::altura(NodoABB* nodo) const
 {
-	recorridoPreorden(raiz);
+	if (nodo == nullptr)
+		return 0;
+	
+	int izq = altura(nodo->izquierdo);
+	int der = altura(nodo->derecho);
+	
+	return 1 + (izq > der ? izq : der);
 }
 
-void ArbolABB::postorden() const
+int ArbolABB::getAltura() const
 {
-	recorridoPostorden(raiz);
+	return altura(raiz);
 }
 
 NodoABB* ArbolABB::getRaiz() const
@@ -102,18 +126,70 @@ NodoABB* ArbolABB::getRaiz() const
 	return raiz;
 }
 
-void ArbolABB::destruir(NodoABB* actual)
+void ArbolABB::inorden(NodoABB* nodo, NodoABB** destino, int& n) const
 {
-	if (actual != nullptr)
-	{
-		destruir(actual->izquierdo);
-		destruir(actual->derecho);
-		delete actual;
-	}
+	if (nodo == nullptr)
+		return;
+	
+	inorden(nodo->izquierdo, destino, n);
+	destino[n++] = nodo;
+	inorden(nodo->derecho, destino, n);
+}
+
+void ArbolABB::preorden(NodoABB* nodo, NodoABB** destino, int& n) const
+{
+	if (nodo == nullptr)
+		return;
+	
+	destino[n++] = nodo;
+	preorden(nodo->izquierdo, destino, n);
+	preorden(nodo->derecho, destino, n);
+}
+
+void ArbolABB::postorden(NodoABB* nodo, NodoABB** destino, int& n) const
+{
+	if (nodo == nullptr)
+		return;
+	
+	postorden(nodo->izquierdo, destino, n);
+	postorden(nodo->derecho, destino, n);
+	destino[n++] = nodo;
+}
+
+int ArbolABB::recorrerInorden(NodoABB** destino) const
+{
+	int n = 0;
+	inorden(raiz, destino, n);
+	return n;
+}
+
+int ArbolABB::recorrerPreorden(NodoABB** destino) const
+{
+	int n = 0;
+	preorden(raiz, destino, n);
+	return n;
+}
+
+int ArbolABB::recorrerPostorden(NodoABB** destino) const
+{
+	int n = 0;
+	postorden(raiz, destino, n);
+	return n;
+}
+
+void ArbolABB::liberar(NodoABB* nodo)
+{
+	if (nodo == nullptr)
+		return;
+	
+	liberar(nodo->izquierdo);
+	liberar(nodo->derecho);
+	delete nodo;
 }
 
 void ArbolABB::limpiar()
 {
-	destruir(raiz);
+	liberar(raiz);
 	raiz = nullptr;
+	cantidad = 0;
 }

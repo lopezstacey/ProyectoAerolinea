@@ -15,18 +15,22 @@ namespace
 	const float Y_OPCIONES_CLIENTE = 190.0f;
 	const float Y_OPCIONES_ADMIN = 255.0f;
 	const float Y_ADMIN_CERRADO = 195.0f;
-	const float Y_ADMIN_CON_CLIENTE = 470.0f;
+	const float Y_ADMIN_CON_CLIENTE = 425.0f;
 	const float Y_ARBOLES_LIBRE = 255.0f;
-	const float Y_ARBOLES_CON_CLIENTE = 535.0f;
+	const float Y_ARBOLES_CON_CLIENTE = 490.0f;
 	const float Y_ARBOLES_CON_ADMIN = 580.0f;
+	const float SEPARACION_OPCIONES = 55.0f; // distancia entre el boton y su primera opcion
 	const float Y_INICIO = 730.0f;
 	const float INICIO_ALTO = 38.0f;
-	const int CANTIDAD_CLIENTE = 6;
+	const int CANTIDAD_CLIENTE = 4;
 	const int CANTIDAD_ADMIN = 7;
-	const char* const NOMBRES_CLIENTE[CANTIDAD_CLIENTE] = { "EXPLORAR DESTINOS", "BUSCAR RUTAS","DESTINOS ALCANZABLES", "PLANIFICAR VIAJE", "MIS VUELOS", "MI EQUIPAJE"};
-	const int IDS_CLIENTE[CANTIDAD_CLIENTE] = { BarraLateral::EXPLORAR_DESTINOS, BarraLateral::BUSCAR_RUTAS,BarraLateral::DESTINOS_ALCANZABLES, BarraLateral::PLANIFICAR_VIAJE, BarraLateral::MIS_VUELOS, BarraLateral::MI_EQUIPAJE};
+	const int CANTIDAD_ARBOLES = 4;
+	const char* const NOMBRES_CLIENTE[CANTIDAD_CLIENTE] = { "EXPLORAR DESTINOS", "BUSCAR RUTAS", "MIS VUELOS", "MI EQUIPAJE" };
+	const int IDS_CLIENTE[CANTIDAD_CLIENTE] = { BarraLateral::EXPLORAR_DESTINOS, BarraLateral::BUSCAR_RUTAS, BarraLateral::MIS_VUELOS, BarraLateral::MI_EQUIPAJE };
 	const char* const NOMBRES_ADMIN[CANTIDAD_ADMIN] = { "GESTIONAR CIUDADES", "GESTIONAR AERONAVES", "GESTIONAR VUELOS", "GESTIONAR RUTAS", "GESTIONAR TRIPULACION", "GESTIONAR PASAJEROS", "GESTIONAR MALETAS" };
 	const int IDS_ADMIN[CANTIDAD_ADMIN] = { BarraLateral::GESTION_CIUDADES, BarraLateral::GESTION_AERONAVES, BarraLateral::GESTION_VUELOS, BarraLateral::GESTION_RUTAS, BarraLateral::GESTION_TRIPULACION, BarraLateral::GESTION_PASAJEROS, BarraLateral::GESTION_MALETAS };
+	const char* const NOMBRES_ARBOLES[CANTIDAD_ARBOLES] = { "ARBOL ABB (CIUDADES)", "ARBOL AVL (PASAJEROS)", "ARBOL PRIM (COSTO)", "ARBOL KRUSKAL (TIEMPO)" };
+	const int IDS_ARBOLES[CANTIDAD_ARBOLES] = { BarraLateral::ARBOL_ABB, BarraLateral::ARBOL_AVL, BarraLateral::ARBOL_PRIM, BarraLateral::ARBOL_KRUSKAL };
 }
 
 BarraLateral::BarraLateral()
@@ -34,6 +38,7 @@ BarraLateral::BarraLateral()
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
 	clienteDesplegado = false;
 	administracionDesplegada = false;
+	arbolesDesplegado = false;
 	opcionSeleccionada = INICIO;
 }
 
@@ -164,6 +169,7 @@ int BarraLateral::procesarEvento(RenderWindow& ventana, Event evento)
 	{
 		clienteDesplegado = !clienteDesplegado;
 		administracionDesplegada = false;
+		arbolesDesplegado = false;
 		return NINGUNA;
 	}
 	
@@ -173,6 +179,7 @@ int BarraLateral::procesarEvento(RenderWindow& ventana, Event evento)
 	{
 		administracionDesplegada = !administracionDesplegada;
 		clienteDesplegado = false;
+		arbolesDesplegado = false;
 		return NINGUNA;
 	}
 	
@@ -199,7 +206,22 @@ int BarraLateral::procesarEvento(RenderWindow& ventana, Event evento)
 	float yArboles = yBotonArboles();
 	
 	if (y >= yArboles && y <= yArboles + BOTON_ALTO)
-		return ARBOLES_GRAFOS;
+	{
+		arbolesDesplegado = !arbolesDesplegado;
+		clienteDesplegado = false;
+		administracionDesplegada = false;
+		return NINGUNA;
+	}
+	
+	if (arbolesDesplegado)
+	{
+		for (int i = 0; i < CANTIDAD_ARBOLES; i++)
+		{
+			float arriba = yArboles + SEPARACION_OPCIONES + i * OPCION_PASO;
+			if (y >= arriba && y <= arriba + OPCION_ALTO)
+				return IDS_ARBOLES[i];
+		}
+	}
 	
 	return NINGUNA;
 }
@@ -228,7 +250,15 @@ void BarraLateral::dibujar(RenderWindow& ventana)
 			dibujarOpcion(ventana, Y_OPCIONES_ADMIN + i * OPCION_PASO, NOMBRES_ADMIN[i], opcionSeleccionada == IDS_ADMIN[i]);
 	}
 	
-	dibujarBoton(ventana, BOTON_X, yBotonArboles(), BOTON_ANCHO, BOTON_ALTO, "ARBOLES Y GRAFOS", Color(90, 120, 95));
+	float yArboles = yBotonArboles();
+	dibujarBoton(ventana, BOTON_X, yArboles, BOTON_ANCHO, BOTON_ALTO, "ARBOLES Y GRAFOS", arbolesDesplegado ? Color(55, 70, 60) : Color(90, 120, 95));
+	
+	if (arbolesDesplegado)
+	{
+		for (int i = 0; i < CANTIDAD_ARBOLES; i++)
+			dibujarOpcion(ventana, yArboles + SEPARACION_OPCIONES + i * OPCION_PASO, NOMBRES_ARBOLES[i], opcionSeleccionada == IDS_ARBOLES[i]);
+	}
+	
 	dibujarBoton(ventana, BOTON_X, Y_INICIO, BOTON_ANCHO, INICIO_ALTO, "VOLVER AL INICIO", Color(90, 120, 95));
 }
 

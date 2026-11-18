@@ -9,8 +9,9 @@
 #include "PantallaRutas.h"
 #include "PantallaExplorar.h"
 #include "PantallaBuscarRutas.h"
-#include "PantallaPlanificarViaje.h"
-#include "PantallaBellmanFord.h"
+#include "PantallaMisVuelos.h"
+#include "PantallaABB.h"
+#include "PantallaExpansion.h"
 
 using namespace sf;
 
@@ -65,25 +66,38 @@ void Aplicacion::procesarEventos()
 		
 		if (opcion == BarraLateral::BUSCAR_RUTAS)
 		{
-			gestorPantallas.cambiarPantalla(new PantallaBuscarRutas(grafo));
+			gestorPantallas.cambiarPantalla(new PantallaBuscarRutas(grafo, &listaPasajeros,	&listaMaletas, &listaVuelos, &listaReservas, &gestorPantallas));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
 		
-		if (opcion == BarraLateral::DESTINOS_ALCANZABLES)
+		if (opcion == BarraLateral::MIS_VUELOS)
 		{
-			gestorPantallas.cambiarPantalla(new PantallaBellmanFord(grafo));
+			gestorPantallas.cambiarPantalla(new PantallaMisVuelos(&listaPasajeros, &listaMaletas, &listaVuelos, &listaReservas, &gestorPantallas, grafo));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
-		
-		if (opcion == BarraLateral::PLANIFICAR_VIAJE)
+		if (opcion == BarraLateral::MI_EQUIPAJE)
 		{
-			gestorPantallas.cambiarPantalla(new PantallaPlanificarViaje(&listaPasajeros, &listaVuelos, &arbolPasajeros, &gestorAsignaciones));
+			gestorPantallas.cambiarPantalla(new PantallaMiEquipaje(grafo, &listaPasajeros, &listaMaletas, &listaVuelos, &listaReservas));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
 		
+		if (opcion == BarraLateral::GESTION_PASAJEROS)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaPasajeros(&listaPasajeros, &listaMaletas, &gestorPantallas, grafo, &listaVuelos, &listaReservas));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		if (opcion == BarraLateral::GESTION_MALETAS)
+		{
+			PantallaMaletas* pantallaMaletas = new PantallaMaletas(&listaMaletas, grafo);
+			pantallaMaletas->setListaPasajeros(&listaPasajeros);
+			gestorPantallas.cambiarPantalla(pantallaMaletas);
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
 		if (opcion == BarraLateral::GESTION_CIUDADES)
 		{
 			gestorPantallas.cambiarPantalla(new PantallaCiudades(grafo));
@@ -114,21 +128,33 @@ void Aplicacion::procesarEventos()
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
-		if (opcion == BarraLateral::GESTION_PASAJEROS)
-		{
-			gestorPantallas.cambiarPantalla(new PantallaPasajeros(&listaPasajeros, &listaMaletas, &gestorPantallas, grafo));
-			barraLateral.seleccionarOpcion(opcion);
-			continue;
-		}
-		if (opcion == BarraLateral::GESTION_MALETAS)
-		{
-			gestorPantallas.cambiarPantalla(new PantallaMaletas(&listaMaletas, grafo));
-			barraLateral.seleccionarOpcion(opcion);
-			continue;
-		}
 		if (opcion == BarraLateral::INICIO)
 		{
 			gestorPantallas.cambiarPantalla(new PantallaInicio());
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		if (opcion == BarraLateral::ARBOL_ABB)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaABB(grafo));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+//		if (opcion == BarraLateral::ARBOL_AVL)
+//		{
+//			gestorPantallas.cambiarPantalla(new PantallaAVL(&listaPasajeros, &listaVuelos, &listaReservas));
+//			barraLateral.seleccionarOpcion(opcion);
+//			continue;
+//		}
+		if (opcion == BarraLateral::ARBOL_PRIM)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaExpansion(grafo, true));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
+		if (opcion == BarraLateral::ARBOL_KRUSKAL)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaExpansion(grafo, false));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}

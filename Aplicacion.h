@@ -10,8 +10,10 @@
 #include "ListaMaletas.h"
 #include "ListaVuelos.h"
 #include "ListaRutas.h"
+#include "ListaReservas.h"
 #include "GestorAsignaciones.h"
 #include "ArbolAVL.h"
+#include "PantallaMiEquipaje.h"
 using namespace sf;
 
 class Aplicacion
@@ -26,6 +28,7 @@ private:
 	ListaMaletas listaMaletas;
 	ListaVuelos listaVuelos;
 	ListaRutas listaRutas;
+	ListaReservas listaReservas;
 	GestorAsignaciones gestorAsignaciones;
 	ArbolAVL arbolPasajeros;
 	GestorPantallas gestorPantallas;
