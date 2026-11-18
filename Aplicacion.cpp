@@ -11,6 +11,7 @@
 #include "PantallaBuscarRutas.h"
 #include "PantallaMisVuelos.h"
 #include "PantallaABB.h"
+#include "PantallaAVL.h"
 #include "PantallaExpansion.h"
 
 using namespace sf;
@@ -140,12 +141,12 @@ void Aplicacion::procesarEventos()
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
-//		if (opcion == BarraLateral::ARBOL_AVL)
-//		{
-//			gestorPantallas.cambiarPantalla(new PantallaAVL(&listaPasajeros, &listaVuelos, &listaReservas));
-//			barraLateral.seleccionarOpcion(opcion);
-//			continue;
-//		}
+		if (opcion == BarraLateral::ARBOL_AVL)
+		{
+			gestorPantallas.cambiarPantalla(new PantallaAVL(&arbolPasajeros, &listaPasajeros, &listaReservas));
+			barraLateral.seleccionarOpcion(opcion);
+			continue;
+		}
 		if (opcion == BarraLateral::ARBOL_PRIM)
 		{
 			gestorPantallas.cambiarPantalla(new PantallaExpansion(grafo, true));

@@ -79,6 +79,9 @@ cursor=0:0
 path=ArbolAVL.cpp
 cursor=125:1
 [source]
+path=PantallaAVL.cpp
+cursor=0:0
+[source]
 path=BellmanFord.cpp
 cursor=0:0
 [source]
@@ -155,6 +158,9 @@ path=ArbolABB.h
 cursor=0:0
 [header]
 path=ArbolAVL.h
+cursor=0:0
+[header]
+path=PantallaAVL.h
 cursor=0:0
 [header]
 path=BellmanFord.h

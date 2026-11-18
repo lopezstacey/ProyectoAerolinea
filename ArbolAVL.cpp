@@ -5,6 +5,16 @@ ArbolAVL::ArbolAVL()
 	raiz = nullptr;
 }
 
+int ArbolAVL::getCantidad() const
+{
+	return contar(raiz);
+}
+
+int ArbolAVL::contar(NodoAVL* nodo) const
+{
+	return nodo == nullptr ? 0 : 1 + contar(nodo->izquierdo) + contar(nodo->derecho);
+}
+
 int ArbolAVL::obtenerAltura(NodoAVL* nodo) const
 {
 	return nodo == nullptr ? 0 : nodo->altura;
@@ -68,10 +78,8 @@ NodoAVL* ArbolAVL::insertar(NodoAVL* nodo, Pasajero pasajero, string codigoVuelo
 	else
 	{
 		nodo->pasajero = pasajero;
-		
 		if (!codigoVuelo.empty())
-			nodo->codigoVuelo = codigoVuelo;
-		
+			agregarVuelo(nodo, codigoVuelo);
 		return nodo;
 	}
 	
@@ -96,7 +104,6 @@ NodoAVL* ArbolAVL::insertar(NodoAVL* nodo, Pasajero pasajero, string codigoVuelo
 		nodo->izquierdo = rotacionIzquierda(nodo->izquierdo);
 		return rotacionDerecha(nodo);
 	}
-		
 		if (balance < -1 &&
 			pasajero.getIdentificacion() < nodo->derecho->pasajero.getIdentificacion())
 		{
@@ -136,6 +143,33 @@ Pasajero* ArbolAVL::buscar(string identificacion) const
 	return encontrado == nullptr ? nullptr : &encontrado->pasajero;
 }
 
+bool ArbolAVL::agregarVuelo(NodoAVL* nodo, const string& codigoVuelo)
+{
+	if (nodo == nullptr || codigoVuelo.empty())
+		return false;
+
+	NodoVueloAVL* actual = nodo->vuelos;
+	NodoVueloAVL* anterior = nullptr;
+	while (actual != nullptr)
+	{
+		if (actual->codigo == codigoVuelo)
+		{
+			nodo->codigoVuelo = codigoVuelo;
+			return true;
+		}
+		anterior = actual;
+		actual = actual->siguiente;
+	}
+
+	NodoVueloAVL* nuevo = new NodoVueloAVL(codigoVuelo);
+	if (anterior == nullptr)
+		nodo->vuelos = nuevo;
+	else
+		anterior->siguiente = nuevo;
+	nodo->codigoVuelo = codigoVuelo;
+	return true;
+}
+
 bool ArbolAVL::asignarVuelo(string identificacion, string codigoVuelo)
 {
 	NodoAVL* encontrado = buscar(raiz, identificacion);
@@ -143,9 +177,22 @@ bool ArbolAVL::asignarVuelo(string identificacion, string codigoVuelo)
 	if (encontrado == nullptr || codigoVuelo.empty())
 		return false;
 	
-	encontrado->codigoVuelo = codigoVuelo;
+	return agregarVuelo(encontrado, codigoVuelo);
+}
+
+bool ArbolAVL::tieneVuelo(string identificacion, string codigoVuelo) const
+{
+	if (codigoVuelo.empty())
+		return false;
 	
-	return true;
+	NodoAVL* encontrado = buscar(raiz, identificacion);
+	for (NodoVueloAVL* vuelo = encontrado == nullptr ? nullptr : encontrado->vuelos;
+	vuelo != nullptr; vuelo = vuelo->siguiente)
+	{
+		if (vuelo->codigo == codigoVuelo)
+			return true;
+	}
+	return false;
 }
 
 string ArbolAVL::buscarVuelo(string identificacion) const
@@ -155,9 +202,70 @@ string ArbolAVL::buscarVuelo(string identificacion) const
 	return encontrado == nullptr ? "" : encontrado->codigoVuelo;
 }
 
+void ArbolAVL::recorrerInorden(NodoAVL* nodo, NodoAVL** secuencia, int& cantidad) const
+{
+	if (nodo == nullptr)
+		return;
+	recorrerInorden(nodo->izquierdo, secuencia, cantidad);
+	secuencia[cantidad++] = nodo;
+	recorrerInorden(nodo->derecho, secuencia, cantidad);
+}
+
+void ArbolAVL::recorrerPreorden(NodoAVL* nodo, NodoAVL** secuencia, int& cantidad) const
+{
+	if (nodo == nullptr)
+		return;
+	secuencia[cantidad++] = nodo;
+	recorrerPreorden(nodo->izquierdo, secuencia, cantidad);
+	recorrerPreorden(nodo->derecho, secuencia, cantidad);
+}
+
+void ArbolAVL::recorrerPostorden(NodoAVL* nodo, NodoAVL** secuencia, int& cantidad) const
+{
+	if (nodo == nullptr)
+		return;
+	recorrerPostorden(nodo->izquierdo, secuencia, cantidad);
+	recorrerPostorden(nodo->derecho, secuencia, cantidad);
+	secuencia[cantidad++] = nodo;
+}
+
+int ArbolAVL::recorrerInorden(NodoAVL** secuencia) const
+{
+	int cantidad = 0;
+	if (secuencia != nullptr)
+		recorrerInorden(raiz, secuencia, cantidad);
+	return cantidad;
+}
+
+int ArbolAVL::recorrerPreorden(NodoAVL** secuencia) const
+{
+	int cantidad = 0;
+	if (secuencia != nullptr)
+		recorrerPreorden(raiz, secuencia, cantidad);
+	return cantidad;
+}
+
+int ArbolAVL::recorrerPostorden(NodoAVL** secuencia) const
+{
+	int cantidad = 0;
+	if (secuencia != nullptr)
+		recorrerPostorden(raiz, secuencia, cantidad);
+	return cantidad;
+}
+
 NodoAVL* ArbolAVL::getRaiz() const
 {
 	return raiz;
+}
+
+void ArbolAVL::destruirVuelos(NodoVueloAVL* vuelo)
+{
+	while (vuelo != nullptr)
+	{
+		NodoVueloAVL* siguiente = vuelo->siguiente;
+		delete vuelo;
+		vuelo = siguiente;
+	}
 }
 
 void ArbolAVL::destruir(NodoAVL* nodo)
@@ -166,6 +274,7 @@ void ArbolAVL::destruir(NodoAVL* nodo)
 	{
 		destruir(nodo->izquierdo);
 		destruir(nodo->derecho);
+		destruirVuelos(nodo->vuelos);
 		delete nodo;
 	}
 }
