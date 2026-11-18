@@ -34,6 +34,7 @@ public:
     bool asignarTripulante(string identificacionTripulante, string matriculaAeronave);
     bool cambiarAeronaveTripulante(string identificacionTripulante, string nuevaMatricula);
     bool quitarTripulante(string identificacionTripulante);
+    int quitarAsignacionesAeronave(string matriculaAeronave);
     string buscarAeronaveTripulante(string identificacionTripulante) const;
     NodoAsignacionTripulante* getPrimeroTripulacion() const;
     int getCantidadTripulacion() const;

@@ -105,7 +105,8 @@ bool Grafo::agregarVuelo(Vuelo vuelo)
 		codigoOrigen == codigoDestino)
 		return false;
 	
-	if (vuelo.getCosto() <= 0 || vuelo.getDuracion() <= 0)
+	if (!isfinite(vuelo.getCosto()) || !isfinite(vuelo.getDuracion()) ||
+		vuelo.getCosto() <= 0 || vuelo.getDuracion() <= 0)
 		return false;
 	
 	if (buscarVuelo(vuelo.getCodigo()) != nullptr)
@@ -199,7 +200,8 @@ bool Grafo::modificarVuelo(string codigo, string codigoOrigen, string codigoDest
 		return false;
 	
 	if (codigoOrigen.empty() || codigoDestino.empty() ||
-		codigoOrigen == codigoDestino || costo <= 0 || duracion <= 0)
+		codigoOrigen == codigoDestino || !isfinite(costo) || !isfinite(duracion) ||
+		costo <= 0 || duracion <= 0)
 		return false;
 	
 	if (arista->vuelo.getCodigoOrigen() == codigoOrigen)

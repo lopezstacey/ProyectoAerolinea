@@ -19,7 +19,7 @@ namespace
 	const float Y_ARBOLES_LIBRE = 255.0f;
 	const float Y_ARBOLES_CON_CLIENTE = 490.0f;
 	const float Y_ARBOLES_CON_ADMIN = 580.0f;
-	const float SEPARACION_OPCIONES = 55.0f; // distancia entre el boton y su primera opcion
+	const float SEPARACION_OPCIONES = 55.0f;
 	const float Y_INICIO = 730.0f;
 	const float INICIO_ALTO = 38.0f;
 	const int CANTIDAD_CLIENTE = 4;
@@ -251,7 +251,7 @@ void BarraLateral::dibujar(RenderWindow& ventana)
 	}
 	
 	float yArboles = yBotonArboles();
-	dibujarBoton(ventana, BOTON_X, yArboles, BOTON_ANCHO, BOTON_ALTO, "ARBOLES Y GRAFOS", arbolesDesplegado ? Color(55, 70, 60) : Color(90, 120, 95));
+	dibujarBoton(ventana, BOTON_X, yArboles, BOTON_ANCHO, BOTON_ALTO, "ARBOLES", arbolesDesplegado ? Color(55, 70, 60) : Color(90, 120, 95));
 	
 	if (arbolesDesplegado)
 	{

@@ -82,6 +82,33 @@ bool GestorAsignaciones::quitarTripulante(string identificacionTripulante)
     return false;
 }
 
+int GestorAsignaciones::quitarAsignacionesAeronave(string matriculaAeronave)
+{
+    int eliminadas = 0;
+    NodoAsignacionTripulante* anterior = nullptr;
+    NodoAsignacionTripulante* actual = primeroTripulacion;
+
+    while (actual != nullptr)
+    {
+        NodoAsignacionTripulante* siguiente = actual->siguiente;
+        if (actual->matriculaAeronave == matriculaAeronave)
+        {
+            if (anterior == nullptr)
+                primeroTripulacion = siguiente;
+            else
+                anterior->siguiente = siguiente;
+            delete actual;
+            cantidadTripulacion--;
+            eliminadas++;
+        }
+        else
+            anterior = actual;
+        actual = siguiente;
+    }
+
+    return eliminadas;
+}
+
 string GestorAsignaciones::buscarAeronaveTripulante(string identificacionTripulante) const
 {
     NodoAsignacionTripulante* actual = primeroTripulacion;

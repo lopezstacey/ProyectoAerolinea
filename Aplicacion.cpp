@@ -101,19 +101,19 @@ void Aplicacion::procesarEventos()
 		}
 		if (opcion == BarraLateral::GESTION_CIUDADES)
 		{
-			gestorPantallas.cambiarPantalla(new PantallaCiudades(grafo));
+			gestorPantallas.cambiarPantalla(new PantallaCiudades(grafo, &listaVuelos, &listaRutas, &listaReservas));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
 		if (opcion == BarraLateral::GESTION_AERONAVES)
 		{
-			gestorPantallas.cambiarPantalla(new PantallaAeronaves(&listaAeronaves));
+			gestorPantallas.cambiarPantalla(new PantallaAeronaves(&listaAeronaves, &listaRutas, &gestorAsignaciones));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}
 		if (opcion == BarraLateral::GESTION_VUELOS)
 		{
-			gestorPantallas.cambiarPantalla(new PantallaVuelos(&listaVuelos, grafo));
+			gestorPantallas.cambiarPantalla(new PantallaVuelos(&listaVuelos, grafo, &listaRutas, &listaReservas));
 			barraLateral.seleccionarOpcion(opcion);
 			continue;
 		}

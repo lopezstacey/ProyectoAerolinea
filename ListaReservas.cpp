@@ -82,6 +82,34 @@ int ListaReservas::eliminarPorPasajero(const string& identificacion)
 	return eliminadas;
 }
 
+int ListaReservas::eliminarPorVuelo(const string& codigoVuelo)
+{
+	int eliminadas = 0;
+	NodoReserva* anterior = nullptr;
+	NodoReserva* actual = primero;
+
+	while (actual != nullptr)
+	{
+		NodoReserva* siguiente = actual->siguiente;
+		if (actual->codigoVuelo == codigoVuelo)
+		{
+			if (anterior == nullptr)
+				primero = siguiente;
+			else
+				anterior->siguiente = siguiente;
+
+			delete actual;
+			cantidad--;
+			eliminadas++;
+		}
+		else
+			anterior = actual;
+		actual = siguiente;
+	}
+
+	return eliminadas;
+}
+
 NodoReserva* ListaReservas::getPrimero() const
 {
 	return primero;
