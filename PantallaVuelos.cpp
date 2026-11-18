@@ -542,7 +542,7 @@ void PantallaVuelos::dibujarListado(RenderWindow& ventana)
 		stringstream costoFormateado;
 		costoFormateado << fixed << setprecision(0) << actual->vuelo.getCosto();
 		stringstream duracionFormateada;
-		duracionFormateada << fixed << setprecision(0) << actual->vuelo.getDuracion();
+		duracionFormateada << fixed << setprecision(1) << actual->vuelo.getDuracion();
 		
 		dibujarTexto(ventana, 790, y, recortarTexto(fuente, actual->vuelo.getCodigo(), 12, 100), 12, Color::Black);
 		dibujarTexto(ventana, 900, y, recortarTexto(fuente, nombreOrigen, 12, 120), 12, Color::Black);
@@ -554,7 +554,6 @@ void PantallaVuelos::dibujarListado(RenderWindow& ventana)
 		fila++;
 	}
 	
-	// Barra de desplazamiento.
 	const float altoPista = (FILAS_VUELOS - 1) * 40.0f + 35.0f;
 	RectangleShape pista(Vector2f(6, altoPista));
 	pista.setPosition(ancho - 26, 190);
@@ -648,7 +647,6 @@ void PantallaVuelos::registrarVuelo()
 		return;
 	}
 	
-	// El vuelo tambien debe quedar como arista del grafo para los algoritmos de rutas.
 	if (!grafo->agregarVuelo(nuevo))
 	{
 		listaVuelos->eliminar(codigo);
@@ -710,7 +708,6 @@ void PantallaVuelos::modificarVuelo()
 		return;
 	}
 	
-	// Se actualiza primero el grafo; si el vuelo no estaba en el grafo, se agrega.
 	bool enGrafo;
 	if (grafo->buscarVuelo(codigoSeleccionado) != nullptr)
 		enGrafo = grafo->modificarVuelo(codigoSeleccionado, codigoOrigen, codigoDestino, costoNumero, duracionNumero);

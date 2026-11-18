@@ -25,6 +25,7 @@ static string recortarTexto(const Font& fuente, const string& texto, int tamano,
 PantallaMaletas::PantallaMaletas(ListaMaletas* lista, string id)
 {
 	listaMaletas = lista;
+	listaPasajeros = nullptr;
 	grafo = nullptr;
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
 	codigo = "";
@@ -48,6 +49,7 @@ PantallaMaletas::PantallaMaletas(ListaMaletas* lista, string id)
 PantallaMaletas::PantallaMaletas(ListaMaletas* lista, Grafo* g, string id)
 {
 	listaMaletas = lista;
+	listaPasajeros = nullptr;
 	grafo = g;
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
 	codigo = "";
@@ -66,6 +68,20 @@ PantallaMaletas::PantallaMaletas(ListaMaletas* lista, Grafo* g, string id)
 	cursorVisible = true;
 	listaDestinosAbierta = false;
 	tiempoCursor = 0;
+}
+
+void PantallaMaletas::setListaPasajeros(ListaPasajeros* lista)
+{
+	listaPasajeros = lista;
+}
+
+void PantallaMaletas::prepararReserva(string codigoSugerido, string destinoSugerido, function<void(string)> alRegistrar)
+{
+	this->alRegistrar = alRegistrar;
+	codigo = codigoSugerido;
+	destino = destinoSugerido;
+	campoActivo = 2;
+	mensaje = "Indique el peso de la maleta para continuar con la reserva.";
 }
 
 void PantallaMaletas::procesarEventos(RenderWindow& ventana, Event e)
@@ -121,7 +137,6 @@ void PantallaMaletas::procesarEventos(RenderWindow& ventana, Event e)
 		}
 	}
 	
-	// Scroll vertical de la lista de maletas.
 	if (e.type == Event::MouseWheelScrolled)
 	{
 		int x = e.mouseWheelScroll.x;
@@ -148,10 +163,10 @@ void PantallaMaletas::procesarEventos(RenderWindow& ventana, Event e)
 	if (e.type == Event::MouseButtonPressed && e.mouseButton.button == Mouse::Left)
 	{
 		int x = e.mouseButton.x, y = e.mouseButton.y;
-		if (x >= 350 && x <= 730)
+		bool modoReserva = static_cast<bool>(alRegistrar);
+		if ((modoReserva || editando) && x >= 350 && x <= 730)
 		{
-			if (y >= 145 && y <= 190) campoActivo = 0;
-			else if (y >= 205 && y <= 250 && !identificacionBloqueada) campoActivo = 1;
+			if (y >= 145 && y <= 190 && !editando) campoActivo = 0;
 			else if (y >= 265 && y <= 310) campoActivo = 2;
 			else if (y >= 325 && y <= 370)
 			{
@@ -162,16 +177,26 @@ void PantallaMaletas::procesarEventos(RenderWindow& ventana, Event e)
 			else if (y >= 385 && y <= 430) campoActivo = 4;
 		}
 		
-		if (x >= 345 && x <= 510 && y >= 445 && y <= 490)
+		if (modoReserva)
 		{
-			if (editando) modificarMaleta();
-			else registrarMaleta();
+			if (x >= 345 && x <= 510 && y >= 455 && y <= 500)
+				registrarMaleta();
 		}
-		else if (x >= 525 && x <= 690 && y >= 445 && y <= 490)
-			eliminarMaleta();
+		else if (editando)
+		{
+			bool enFila = y >= 455 && y <= 500;
+			if (enFila && x >= 345 && x <= 465)
+				modificarMaleta();
+			else if (enFila && x >= 480 && x <= 600)
+				eliminarMaleta();
+			else if (enFila && x >= 615 && x <= 735)
+			{
+				limpiarFormulario();
+				mensaje = "Edicion cancelada.";
+			}
+		}
 		
-		// Seleccion de fila (se excluye la barra de desplazamiento).
-		if (x >= 785 && x <= 1435 && y >= 200 && y < 694)
+		if (!modoReserva && x >= 785 && x <= 1435 && y >= 200 && y < 694)
 		{
 			int fila = desplazamientoLista + (y - 200) / 38;
 			NodoMaleta* n = listaMaletas->getPrimero();
@@ -180,21 +205,22 @@ void PantallaMaletas::procesarEventos(RenderWindow& ventana, Event e)
 		}
 	}
 	
-	if (e.type == Event::KeyPressed && e.key.code == Keyboard::Tab)
+	if (e.type == Event::KeyPressed && e.key.code == Keyboard::Tab && (static_cast<bool>(alRegistrar) || editando))
 	{
 		campoActivo = (campoActivo + 1) % 5;
-		if (identificacionBloqueada && campoActivo == 1) campoActivo = 2;
+		if (campoActivo == 1) campoActivo = 2;
+		if (editando && campoActivo == 0) campoActivo = 2;
 		listaDestinosAbierta = campoActivo == 3;
 		indiceInicioDestinos = 0;
 	}
 	if (e.type == Event::KeyPressed && e.key.code == Keyboard::Escape)
 		limpiarFormulario();
 	
-	if (e.type == Event::TextEntered && campoActivo != 3)
+	if (e.type == Event::TextEntered && campoActivo != 3 && (static_cast<bool>(alRegistrar) || editando))
 	{
 		string* campo = nullptr;
-		if (campoActivo == 0) campo = &codigo;
-		if (campoActivo == 1 && !identificacionBloqueada) campo = &identificacionPasajero;
+		if (campoActivo == 0 && !editando) campo = &codigo;
+		if (campoActivo == 1 && !identificacionBloqueada && !editando) campo = &identificacionPasajero;
 		if (campoActivo == 2) campo = &peso;
 		if (campoActivo == 4) campo = &estado;
 		if (campo)
@@ -232,7 +258,7 @@ void PantallaMaletas::dibujar(RenderWindow& v)
 	bg.setFillColor(Color::White);
 	v.draw(bg);
 	dibujarTexto(v, 335, 35, "GESTION DE MALETAS", 28, Color(55,70,60));
-	dibujarTexto(v, 335, 75, "REGISTRO Y CONTROL DE EQUIPAJE", 14, Color(120,125,120));
+	dibujarTexto(v, 335, 75, alRegistrar ? "MALETA DE LA RESERVA EN CURSO - PASAJERO " + identificacionPasajero : string("CONSULTA Y ADMINISTRACION DE EQUIPAJE"), 14, Color(120,125,120));
 	dibujarFormulario(v);
 	dibujarListado(v);
 	if (listaDestinosAbierta) dibujarListaDestinos(v);
@@ -253,22 +279,46 @@ void PantallaMaletas::dibujarFormulario(RenderWindow& v)
 		float y=150+i*60;
 		dibujarTexto(v,350,y,labs[i],14,Color(75,80,75));
 		RectangleShape c(Vector2f(380,32)); c.setPosition(350,y+20);
-		c.setFillColor((i==1 && identificacionBloqueada)?Color(230,235,230):Color::White);
-		c.setOutlineThickness(campoActivo==i?2:1);
-		c.setOutlineColor(campoActivo==i?Color(90,120,95):Color(210,215,210)); v.draw(c);
+		bool habil = (static_cast<bool>(alRegistrar) || editando) && i!=1 && !(editando && i==0);
+		bool sel = habil && campoActivo==i;
+		c.setFillColor(habil?Color::White:Color(236,239,235));
+		c.setOutlineThickness(sel?2:1);
+		c.setOutlineColor(sel?Color(90,120,95):Color(210,215,210)); v.draw(c);
 		string t=vals[i];
-		if(i==3) t+="   v";
-		else if(campoActivo==i && cursorVisible) t+="|";
+		if(i==3) { if(habil) t+="   v"; }
+		else if(sel && cursorVisible) t+="|";
 		dibujarTexto(v,360,y+25,t,14,Color::Black);
 	}
-	RectangleShape b1(Vector2f(165,45)); b1.setPosition(345,460);
-	b1.setFillColor(editando?Color(120,130,120):Color(90,120,95)); v.draw(b1);
-	dibujarTexto(v,editando?360:380,472,editando?"GUARDAR CAMBIOS":"REGISTRAR",14,Color::White);
-	RectangleShape b2(Vector2f(165,45)); b2.setPosition(525,460);
-	b2.setFillColor(Color(165,85,80)); v.draw(b2);
-	dibujarTexto(v,575,472,"ELIMINAR",14,Color::White);
-	dibujarTexto(v,350,520,"Seleccione una maleta del listado para modificarla",12,Color(100,110,120));
-	dibujarTexto(v,350,545,"El destino se carga de las ciudades registradas.",12,Color(100,110,120));
+	if (alRegistrar)
+	{
+		RectangleShape b1(Vector2f(165,45)); b1.setPosition(345,455);
+		b1.setFillColor(Color(90,120,95)); v.draw(b1);
+		dibujarTexto(v,380,467,"REGISTRAR",14,Color::White);
+		dibujarTexto(v,350,515,"El destino se carga de las ciudades registradas.",12,Color(100,110,120));
+	}
+	else if (editando)
+	{
+		RectangleShape b1(Vector2f(120,45)); b1.setPosition(345,455);
+		b1.setFillColor(Color(90,120,95)); v.draw(b1);
+		dibujarTexto(v,375,467,"GUARDAR",13,Color::White);
+		RectangleShape b2(Vector2f(120,45)); b2.setPosition(480,455);
+		b2.setFillColor(Color(165,85,80)); v.draw(b2);
+		dibujarTexto(v,508,467,"ELIMINAR",13,Color::White);
+		RectangleShape b3(Vector2f(120,45)); b3.setPosition(615,455);
+		b3.setFillColor(Color(120,130,120)); v.draw(b3);
+		dibujarTexto(v,640,467,"CANCELAR",13,Color::White);
+		dibujarTexto(v,350,515,"El codigo y el pasajero no se pueden modificar.",12,Color(100,110,120));
+	}
+	else if (listaMaletas->getCantidad()==0)
+	{
+		dibujarTexto(v,350,455,"No hay maletas registradas.",16,Color(165,85,80));
+		dibujarTexto(v,350,485,"Las maletas se crean al confirmar una reserva.",13,Color(120,125,120));
+	}
+	else
+	{
+		dibujarTexto(v,350,455,"Seleccione una maleta del listado para",14,Color(75,80,75));
+		dibujarTexto(v,350,477,"verla, editarla o eliminarla.",14,Color(75,80,75));
+	}
 }
 
 void PantallaMaletas::dibujarListaDestinos(RenderWindow& v)
@@ -335,6 +385,9 @@ void PantallaMaletas::dibujarListado(RenderWindow& v)
 	if (desplazamientoLista > maximoDesplazamiento)
 		desplazamientoLista = maximoDesplazamiento;
 	
+	if (totalMaletas == 0)
+		dibujarTexto(v,795,215,"No hay maletas registradas.",16,Color(165,85,80));
+	
 	NodoMaleta* n = listaMaletas->getPrimero();
 	for (int i = 0; n != nullptr && i < desplazamientoLista; i++)
 		n = n->siguiente;
@@ -370,7 +423,7 @@ void PantallaMaletas::dibujarListado(RenderWindow& v)
 		n = n->siguiente;
 		fila++;
 	}
-
+	
 	RectangleShape pista(Vector2f(6,494));
 	pista.setPosition(1440,200);
 	pista.setFillColor(Color(225,229,224));
@@ -428,8 +481,20 @@ void PantallaMaletas::registrarMaleta()
 			while(n){if(n->ciudad.getNombre()==destino){valido=true;break;}n=n->siguiente;}
 			if(!valido){mensaje="Seleccione un destino de la lista.";return;}
 		}
+		if(listaPasajeros && listaPasajeros->buscar(identificacionPasajero)==nullptr)
+		{mensaje="No existe un pasajero con esa identificacion. Registrelo primero.";return;}
 		Maleta nueva(codigo,identificacionPasajero,p,destino,estado);
-		if(listaMaletas->agregar(nueva)){mensaje="Maleta registrada correctamente";limpiarFormulario();}
+		if(listaMaletas->agregar(nueva))
+		{
+			if(alRegistrar)
+			{
+				function<void(string)> continuar = alRegistrar;
+				continuar(nueva.getCodigo());
+				return;
+			}
+			mensaje="Maleta registrada correctamente";
+			limpiarFormulario();
+		}
 		else mensaje="Ya existe una maleta con ese codigo";
 	}
 	catch(...){mensaje="Ingrese un peso valido";}
@@ -442,7 +507,7 @@ void PantallaMaletas::seleccionarMaleta(string c)
 	identificacionPasajero=n->maleta.getIdentificacionPasajero();
 	ostringstream w; w<<n->maleta.getPeso(); peso=w.str();
 	destino=n->maleta.getDestino(); estado=n->maleta.getEstado();
-	editando=true; campoActivo=0; listaDestinosAbierta=false; mensaje="";
+	editando=true; campoActivo=2; listaDestinosAbierta=false; mensaje="";
 }
 
 void PantallaMaletas::modificarMaleta()

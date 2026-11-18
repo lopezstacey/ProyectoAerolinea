@@ -1,5 +1,11 @@
 #include "PantallaPasajeros.h"
 #include "PantallaMaletas.h"
+#include "PantallaResumen.h"
+#include "Grafo.h"
+#include <sstream>
+#include <iomanip>
+#include <cstdlib>
+#include <cmath>
 
 static const float DLG_ANCHO = 420;
 static const float DLG_ALTO = 210;
@@ -60,18 +66,49 @@ static int contarMaletas(ListaMaletas* lista, const string& identificacion)
 	return total;
 }
 
-PantallaPasajeros::PantallaPasajeros(ListaPasajeros* listaPasajeros, ListaMaletas* listaMaletas, GestorPantallas* gestorPantallas, Grafo* grafo)
+static vector<string> envolverTexto(const Font& fuente, const string& texto, int tamano, float anchoMaximo)
+{
+	vector<string> lineas;
+	istringstream palabras(texto);
+	string palabra, linea;
+	while (palabras >> palabra)
+	{
+		string candidata = linea.empty() ? palabra : linea + " " + palabra;
+		Text medida(candidata, fuente, tamano);
+		if (!linea.empty() && medida.getLocalBounds().width > anchoMaximo)
+		{
+			lineas.push_back(linea);
+			linea = palabra;
+		}
+		else
+			linea = candidata;
+	}
+	if (!linea.empty())
+		lineas.push_back(linea);
+	return lineas;
+}
+
+PantallaPasajeros::PantallaPasajeros(ListaPasajeros* listaPasajeros, ListaMaletas* listaMaletas, GestorPantallas* gestorPantallas, Grafo* grafo, ListaVuelos* vuelos, ListaReservas* reservas,
+									 vector<string> codigosVuelos, vector<string> detallesRutas, float costoReserva)
 {
 	this->listaPasajeros = listaPasajeros;
 	this->listaMaletas = listaMaletas;
 	this->gestorPantallas = gestorPantallas;
 	this->grafo = grafo;
+	this->listaVuelos = vuelos;
+	this->listaReservas = reservas;
+	this->codigosVuelosReserva = codigosVuelos;
+	this->detallesRutasReserva = detallesRutas;
+	this->costoReserva = costoReserva;
+	modoReserva = !codigosVuelosReserva.empty();
+	reservaConfirmada = false;
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
 	
 	identificacion = "";
 	nombre = "";
 	telefono = "";
 	correo = "";
+	pesoMaleta = "";
 	identificacionSeleccionada = "";
 	mensaje = "";
 	campoActivo = 0;
@@ -85,6 +122,9 @@ PantallaPasajeros::PantallaPasajeros(ListaPasajeros* listaPasajeros, ListaMaleta
 
 void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 {
+	if (modoReserva && reservaConfirmada)
+		return;
+	
 	if (confirmarEliminar)
 	{
 		if (evento.type == Event::MouseButtonPressed && evento.mouseButton.button == Mouse::Left)
@@ -94,6 +134,9 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 			
 			if (x >= BTN_SI_X && x <= BTN_SI_X + BTN_ANCHO && y >= BTN_Y && y <= BTN_Y + BTN_ALTO)
 			{
+				if (listaReservas != nullptr)
+					listaReservas->eliminarPorPasajero(identificacionSeleccionada);
+				
 				if (listaPasajeros->eliminar(identificacionSeleccionada))
 					mensaje = "Pasajero eliminado correctamente";
 				else
@@ -111,11 +154,25 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 			confirmarEliminar = false;
 		return;
 	}
-
+	
 	if (evento.type == Event::MouseWheelScrolled)
 	{
 		int x = evento.mouseWheelScroll.x;
 		int y = evento.mouseWheelScroll.y;
+		if (modoReserva)
+		{
+			if (x >= 770 && x <= 1450 && y >= 190 && y < 620)
+			{
+				int maximo = static_cast<int>(detallesRutasReserva.size()) - 5;
+				if (maximo < 0)
+					maximo = 0;
+				if (evento.mouseWheelScroll.delta < 0 && desplazamientoLista < maximo)
+					desplazamientoLista++;
+				else if (evento.mouseWheelScroll.delta > 0 && desplazamientoLista > 0)
+					desplazamientoLista--;
+			}
+			return;
+		}
 		
 		if (x >= 785 && x <= 1450 && y >= 200 && y < 694)
 		{
@@ -141,9 +198,9 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 		int x = evento.mouseButton.x;
 		int y = evento.mouseButton.y;
 		
-		if (x >= 350 && x <= 730)
+		if ((modoReserva || editando) && x >= 350 && x <= 730)
 		{
-			if (y >= 145 && y <= 190)
+			if (y >= 145 && y <= 190 && !editando)
 				campoActivo = 0;
 			else if (y >= 205 && y <= 250)
 				campoActivo = 1;
@@ -153,12 +210,17 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 				campoActivo = 3;
 		}
 		
-		if (x >= 350 && x <= 560 && y >= 400 && y <= 430)
+		if (modoReserva && x >= 350 && x <= 560 && y >= 400 && y <= 422)
 		{
 			llevaMaleta = !llevaMaleta;
 		}
 		
-		if (editando)
+		if (modoReserva)
+		{
+			if (x >= 345 && x <= 725 && y >= 480 && y <= 525)
+				registrarPasajero();
+		}
+		else if (editando)
 		{
 			bool enFila = y >= FORM_BTN_Y && y <= FORM_BTN_Y + FORM_BTN_ALTO;
 			
@@ -173,18 +235,11 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 			else if (enFila && x >= FORM_BTN_NUEVO_X && x <= FORM_BTN_NUEVO_X + FORM_BTN_ED_ANCHO)
 			{
 				limpiarFormulario();
-				mensaje = "Formulario limpio. Puede registrar un nuevo pasajero.";
+				mensaje = "Edicion cancelada.";
 			}
 		}
-		else
-		{
-			if (x >= 345 && x <= 510 && y >= 445 && y <= 490)
-				registrarPasajero();
-			else if (x >= 525 && x <= 690 && y >= 445 && y <= 490)
-				eliminarPasajero();
-		}
-
-		if (x >= 785 && x <= 1435 && y >= 200 && y < 694)
+		
+		if (!modoReserva && x >= 785 && x <= 1435 && y >= 200 && y < 694)
 		{
 			int indice = desplazamientoLista + (y - 200) / 38;
 			NodoPasajero* actual = listaPasajeros->getPrimero();
@@ -197,11 +252,13 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 		}
 	}
 	
-	if (evento.type == Event::KeyPressed && evento.key.code == Keyboard::Tab)
+	if (evento.type == Event::KeyPressed && evento.key.code == Keyboard::Tab && (modoReserva || editando))
 	{
 		campoActivo++;
 		if (campoActivo > 3)
 			campoActivo = 0;
+		if (editando && campoActivo == 0)
+			campoActivo = 1;
 	}
 	
 	if (evento.type == Event::KeyPressed && evento.key.code == Keyboard::Escape)
@@ -210,7 +267,7 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 		mensaje = "";
 	}
 	
-	if (evento.type == Event::TextEntered)
+	if (evento.type == Event::TextEntered && (modoReserva || editando))
 	{
 		if (evento.text.unicode == 8)
 		{
@@ -222,6 +279,8 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 				telefono.pop_back();
 			else if (campoActivo == 3 && !correo.empty())
 				correo.pop_back();
+			else if (campoActivo == 4 && !pesoMaleta.empty())
+				pesoMaleta.pop_back();
 		}
 		else if (evento.text.unicode >= 32 && evento.text.unicode < 128)
 		{
@@ -235,6 +294,9 @@ void PantallaPasajeros::procesarEventos(RenderWindow& ventana, Event evento)
 				telefono += caracter;
 			else if (campoActivo == 3 && correo.size() < 60)
 				correo += caracter;
+			else if (campoActivo == 4 && pesoMaleta.size() < 8 &&
+					 ((caracter >= '0' && caracter <= '9') || caracter == '.'))
+				pesoMaleta += caracter;
 		}
 	}
 }
@@ -259,11 +321,15 @@ void PantallaPasajeros::dibujar(RenderWindow& ventana)
 	fondo.setFillColor(Color::White);
 	ventana.draw(fondo);
 	
-	dibujarTexto(ventana, 335, 35, "GESTION DE PASAJEROS", 28, Color(55, 70, 60));
-	dibujarTexto(ventana, 335, 75, "REGISTRO Y ADMINISTRACION DE PASAJEROS", 14, Color(120, 125, 120));
+	dibujarTexto(ventana, 335, 35, modoReserva ? "RESERVAR VUELO" : "GESTION DE PASAJEROS", 28, Color(55, 70, 60));
+	dibujarTexto(ventana, 335, 75, modoReserva ? "REGISTRO DEL PASAJERO Y DETALLE DE COMPRA" :
+				 "CONSULTA Y ADMINISTRACION DE PASAJEROS", 14, Color(120, 125, 120));
 	
 	dibujarFormulario(ventana);
-	dibujarListado(ventana);
+	if (modoReserva)
+		dibujarDatosReserva(ventana);
+	else
+		dibujarListado(ventana);
 	
 	if (!mensaje.empty())
 		dibujarTexto(ventana, 335, 755, mensaje, 16, Color(90, 120, 95));
@@ -297,41 +363,60 @@ void PantallaPasajeros::dibujarFormulario(RenderWindow& ventana)
 		
 		RectangleShape campo(Vector2f(380, 32));
 		campo.setPosition(350, y + 20);
-		campo.setFillColor(Color::White);
-		campo.setOutlineThickness(campoActivo == i ? 2 : 1);
-		campo.setOutlineColor(campoActivo == i ? Color(90, 120, 95) : Color(210, 215, 210));
+		bool habilitado = (modoReserva || editando) && !(editando && i == 0);
+		bool seleccionado = habilitado && campoActivo == i;
+		campo.setFillColor(habilitado ? Color::White : Color(236, 239, 235));
+		campo.setOutlineThickness(seleccionado ? 2 : 1);
+		campo.setOutlineColor(seleccionado ? Color(90, 120, 95) : Color(210, 215, 210));
 		ventana.draw(campo);
 		
 		string texto = valores[i];
-		if (campoActivo == i && cursorVisible)
+		if (seleccionado && cursorVisible)
 			texto += "|";
 		
 		dibujarTexto(ventana, 360, y + 25, texto, 14, Color::Black);
 	}
 	
-	RectangleShape casilla(Vector2f(20, 20));
-	casilla.setPosition(350, 400);
-	casilla.setFillColor(llevaMaleta ? Color(90, 120, 95) : Color::White);
-	casilla.setOutlineThickness(2);
-	casilla.setOutlineColor(Color(90, 120, 95));
-	ventana.draw(casilla);
-	
-	if (llevaMaleta)
+	if (modoReserva)
 	{
-		RectangleShape marca1(Vector2f(11, 3));
-		marca1.setPosition(354, 411);
-		marca1.setRotation(45);
-		marca1.setFillColor(Color::White);
-		ventana.draw(marca1);
+		RectangleShape casilla(Vector2f(20, 20));
+		casilla.setPosition(350, 400);
+		casilla.setFillColor(llevaMaleta ? Color(90, 120, 95) : Color::White);
+		casilla.setOutlineThickness(2);
+		casilla.setOutlineColor(Color(90, 120, 95));
+		ventana.draw(casilla);
 		
-		RectangleShape marca2(Vector2f(13, 3));
-		marca2.setPosition(360, 410);
-		marca2.setRotation(-45);
-		marca2.setFillColor(Color::White);
-		ventana.draw(marca2);
+		if (llevaMaleta)
+		{
+			RectangleShape marca1(Vector2f(11, 3));
+			marca1.setPosition(354, 411);
+			marca1.setRotation(45);
+			marca1.setFillColor(Color::White);
+			ventana.draw(marca1);
+			
+			RectangleShape marca2(Vector2f(13, 3));
+			marca2.setPosition(360, 410);
+			marca2.setRotation(-45);
+			marca2.setFillColor(Color::White);
+			ventana.draw(marca2);
+		}
+		
+		dibujarTexto(ventana, 380, 400, "Lleva maleta", 14, Color(75, 80, 75));
+		
+		if (modoReserva && llevaMaleta)
+			dibujarTexto(ventana, 350, 430, "Al confirmar se abrira Gestion de Maletas.", 12, Color(90, 120, 95));
 	}
 	
-	dibujarTexto(ventana, 380, 400, editando ? "Agregar maleta a este pasajero" : "Lleva maleta", 14, Color(75, 80, 75));
+	if (modoReserva)
+	{
+		RectangleShape botonReserva(Vector2f(380, 42));
+		botonReserva.setPosition(350, 480);
+		botonReserva.setFillColor(reservaConfirmada ? Color(110, 150, 120) : Color(35, 115, 75));
+		ventana.draw(botonReserva);
+		dibujarTextoCentrado(ventana, fuente, reservaConfirmada ? "RESERVA CONFIRMADA" : "CONFIRMAR RESERVA",
+							 540, 501, 14, Color::White);
+		return;
+	}
 	
 	if (editando)
 	{
@@ -355,32 +440,27 @@ void PantallaPasajeros::dibujarFormulario(RenderWindow& ventana)
 			float cy = FORM_BTN_Y + FORM_BTN_ALTO / 2;
 			dibujarTextoCentrado(ventana, fuente, "GUARDAR", FORM_BTN_GUARDAR_X + FORM_BTN_ED_ANCHO / 2, cy, 13, Color::White);
 			dibujarTextoCentrado(ventana, fuente, "ELIMINAR", FORM_BTN_ELIMINAR_X + FORM_BTN_ED_ANCHO / 2, cy, 13, Color::White);
-			dibujarTextoCentrado(ventana, fuente, "NUEVO", FORM_BTN_NUEVO_X + FORM_BTN_ED_ANCHO / 2, cy, 13, Color::White);
+			dibujarTextoCentrado(ventana, fuente, "CANCELAR", FORM_BTN_NUEVO_X + FORM_BTN_ED_ANCHO / 2, cy, 13, Color::White);
 		}
 		
 		int totalMaletas = contarMaletas(listaMaletas, identificacionSeleccionada);
 		dibujarTexto(ventana, 350, 505, "Maletas de este pasajero: " + to_string(totalMaletas), 13, Color(75, 80, 75));
 		
-		if (llevaMaleta)
-			dibujarTexto(ventana, 350, 528, "Al guardar se abrira Gestion de Maletas.", 12, Color(90, 120, 95));
+		if (totalMaletas > 0)
+			dibujarTexto(ventana, 350, 528, "Elimine sus maletas antes de eliminar al pasajero.", 12, Color(165, 85, 80));
 	}
 	else
 	{
-		RectangleShape botonGuardar(Vector2f(165, 45));
-		botonGuardar.setPosition(345, 445);
-		botonGuardar.setFillColor(Color(90, 120, 95));
-		ventana.draw(botonGuardar);
-		
-		dibujarTexto(ventana, 390, 457, "REGISTRAR", 13, Color::White);
-		
-		RectangleShape botonEliminar(Vector2f(165, 45));
-		botonEliminar.setPosition(525, 445);
-		botonEliminar.setFillColor(Color(165, 85, 80));
-		ventana.draw(botonEliminar);
-		
-		dibujarTexto(ventana, 575, 457, "ELIMINAR", 14, Color::White);
-		
-		dibujarTexto(ventana, 350, 505, "Seleccione un pasajero del listado para modificarlo", 12, Color(120, 125, 120));
+		if (listaPasajeros->getCantidad() == 0)
+		{
+			dibujarTexto(ventana, 350, 445, "No hay pasajeros registrados.", 16, Color(165, 85, 80));
+			dibujarTexto(ventana, 350, 475, "Los pasajeros se crean al confirmar una reserva.", 13, Color(120, 125, 120));
+		}
+		else
+		{
+			dibujarTexto(ventana, 350, 445, "Seleccione un pasajero del listado para", 14, Color(75, 80, 75));
+			dibujarTexto(ventana, 350, 467, "verlo, editarlo o eliminarlo.", 14, Color(75, 80, 75));
+		}
 	}
 }
 
@@ -416,6 +496,9 @@ void PantallaPasajeros::dibujarListado(RenderWindow& ventana)
 		maximoDesplazamiento = 0;
 	if (desplazamientoLista > maximoDesplazamiento)
 		desplazamientoLista = maximoDesplazamiento;
+	
+	if (totalPasajeros == 0)
+		dibujarTexto(ventana, 795, 215, "No hay pasajeros registrados.", 16, Color(165, 85, 80));
 	
 	NodoPasajero* actual = listaPasajeros->getPrimero();
 	for (int i = 0; actual != nullptr && i < desplazamientoLista; i++)
@@ -476,6 +559,68 @@ void PantallaPasajeros::dibujarListado(RenderWindow& ventana)
 	dibujarTexto(ventana, 795, 705, "Total de pasajeros: " + to_string(listaPasajeros->getCantidad()), 14, Color(75, 80, 75));
 }
 
+void PantallaPasajeros::dibujarDatosReserva(RenderWindow& ventana)
+{
+	RectangleShape panel(Vector2f(680, 620));
+	panel.setPosition(770, 115);
+	panel.setFillColor(Color(248, 249, 247));
+	panel.setOutlineThickness(1);
+	panel.setOutlineColor(Color(215, 220, 215));
+	ventana.draw(panel);
+	
+	RectangleShape encabezado(Vector2f(680, 40));
+	encabezado.setPosition(770, 115);
+	encabezado.setFillColor(Color(90, 120, 95));
+	ventana.draw(encabezado);
+	dibujarTexto(ventana, 790, 125, "VUELOS, ESCALAS Y FACTURA", 17, Color::White);
+	dibujarTexto(ventana, 790, 170, "Itinerarios seleccionados", 15, Color(55, 70, 60));
+	
+	const int filasVisibles = 5;
+	int inicio = desplazamientoLista;
+	if (inicio < 0)
+		inicio = 0;
+	if (inicio > static_cast<int>(detallesRutasReserva.size()))
+		inicio = static_cast<int>(detallesRutasReserva.size());
+	
+	for (int fila = 0; fila < filasVisibles; fila++)
+	{
+		int indice = inicio + fila;
+		if (indice >= static_cast<int>(detallesRutasReserva.size()))
+			break;
+		float y = 198 + fila * 80;
+		RectangleShape tarjeta(Vector2f(650, 72));
+		tarjeta.setPosition(785, y);
+		tarjeta.setFillColor(fila % 2 == 0 ? Color(242, 245, 241) : Color(250, 251, 249));
+		tarjeta.setOutlineThickness(1);
+		tarjeta.setOutlineColor(Color(225, 230, 224));
+		ventana.draw(tarjeta);
+		
+		dibujarTexto(ventana, 798, y + 6, "Ruta " + to_string(indice + 1), 12, Color(55, 95, 65));
+		vector<string> lineas;
+		if (fuenteCargada)
+			lineas = envolverTexto(fuente, detallesRutasReserva[indice], 12, 610);
+		else
+			lineas.push_back(detallesRutasReserva[indice]);
+		int maxLineas = 3;
+		for (int linea = 0; linea < maxLineas && linea < static_cast<int>(lineas.size()); linea++)
+			dibujarTexto(ventana, 798, y + 24 + linea * 14, lineas[linea], 12, Color(55, 65, 58));
+	}
+	
+	if (detallesRutasReserva.size() > filasVisibles)
+		dibujarTexto(ventana, 1110, 605, "Usa la rueda para ver mas rutas", 11, Color(105, 115, 108));
+	
+	RectangleShape separador(Vector2f(650, 1));
+	separador.setPosition(785, 632);
+	separador.setFillColor(Color(210, 218, 210));
+	ventana.draw(separador);
+	dibujarTexto(ventana, 790, 642, "DETALLE DE FACTURA", 14, Color(55, 70, 60));
+	dibujarTexto(ventana, 790, 670, "Rutas: " + to_string(detallesRutasReserva.size()) +
+				 "    Vuelos: " + to_string(codigosVuelosReserva.size()), 12, Color(75, 80, 75));
+	ostringstream total;
+	total << fixed << setprecision(2) << costoReserva;
+	dibujarTexto(ventana, 790, 694, "Total a pagar: CRC " + total.str(), 16, Color(35, 95, 60));
+}
+
 void PantallaPasajeros::dibujarConfirmacion(RenderWindow& ventana)
 {
 	RectangleShape fondo(Vector2f(1200, 800));
@@ -501,7 +646,7 @@ void PantallaPasajeros::dibujarConfirmacion(RenderWindow& ventana)
 	{
 		dibujarTextoCentrado(ventana, fuente, "CONFIRMAR ELIMINACION", centroX, DLG_Y + 40, 20, Color(55, 70, 60));
 		dibujarTextoCentrado(ventana, fuente, "Desea eliminar este pasajero?", centroX, DLG_Y + 82, 16, Color::Black);
-		dibujarTextoCentrado(ventana, fuente, "Esta accion no se puede deshacer.", centroX, DLG_Y + 108, 13, Color(120, 125, 120));
+		dibujarTextoCentrado(ventana, fuente, "Tambien se eliminaran sus reservas. No se puede deshacer.", centroX, DLG_Y + 108, 13, Color(120, 125, 120));
 	}
 	
 	RectangleShape botonSi(Vector2f(BTN_ANCHO, BTN_ALTO));
@@ -523,30 +668,140 @@ void PantallaPasajeros::dibujarConfirmacion(RenderWindow& ventana)
 
 void PantallaPasajeros::registrarPasajero()
 {
-	if (identificacion.empty() || nombre.empty() || telefono.empty() || correo.empty())
+	if (modoReserva)
 	{
-		mensaje = "Complete todos los campos";
-		return;
-	}
-	
-	Pasajero nuevo(identificacion, nombre, telefono, correo);
-	
-	if (listaPasajeros->agregar(nuevo))
-	{
-		if (llevaMaleta)
+		if (listaVuelos == nullptr || listaReservas == nullptr || listaPasajeros == nullptr ||
+			listaMaletas == nullptr || gestorPantallas == nullptr || codigosVuelosReserva.empty())
 		{
-			string identificacionRegistrada = identificacion;
-			gestorPantallas->solicitarCambioPantalla(new PantallaMaletas(listaMaletas, grafo, identificacionRegistrada));
+			mensaje = "No se puede confirmar: faltan datos de la reserva.";
 			return;
 		}
-		
-		mensaje = "Pasajero registrado correctamente";
-		limpiarFormulario();
+			
+			NodoPasajero* existente = listaPasajeros->buscar(identificacion);
+			if (identificacion.empty())
+			{
+				mensaje = "Ingrese la identificacion del pasajero.";
+				return;
+			}
+			
+			string nombreReserva = nombre;
+			string telefonoReserva = telefono;
+			string correoReserva = correo;
+			if (existente != nullptr)
+			{
+				nombreReserva = existente->pasajero.getNombre();
+				telefonoReserva = existente->pasajero.getTelefono();
+				correoReserva = existente->pasajero.getCorreo();
+			}
+			else if (nombreReserva.empty() || telefonoReserva.empty() || correoReserva.empty())
+			{
+				mensaje = "Complete todos los datos personales del pasajero.";
+				return;
+			}
+			
+			for (size_t i = 0; i < codigosVuelosReserva.size(); i++)
+			{
+				if (listaVuelos->buscar(codigosVuelosReserva[i]) == nullptr)
+				{
+					mensaje = "No se puede confirmar: uno de los vuelos ya no existe.";
+					return;
+				}
+				if (listaReservas->contiene(identificacion, codigosVuelosReserva[i]))
+				{
+					mensaje = "El pasajero ya tiene una reserva para uno de estos vuelos.";
+					return;
+				}
+				for (size_t j = 0; j < i; j++)
+					if (codigosVuelosReserva[j] == codigosVuelosReserva[i])
+				{
+						mensaje = "La compra contiene un vuelo repetido.";
+						return;
+				}
+			}
+			
+			string destinoMaleta;
+			if (llevaMaleta)
+			{
+				NodoVuelo* ultimoVuelo = listaVuelos->buscar(codigosVuelosReserva.back());
+				if (ultimoVuelo == nullptr)
+				{
+					mensaje = "No se pudo determinar el destino de la maleta.";
+					return;
+				}
+				destinoMaleta = ultimoVuelo->vuelo.getCodigoDestino();
+				if (grafo != nullptr)
+				{
+					NodoVertice* ciudadDestino = grafo->buscarCiudad(destinoMaleta);
+					if (ciudadDestino != nullptr)
+						destinoMaleta = ciudadDestino->ciudad.getNombre();
+				}
+			}
+			
+			if (existente == nullptr)
+			{
+				Pasajero nuevo(identificacion, nombreReserva, telefonoReserva, correoReserva);
+				if (!listaPasajeros->agregar(nuevo))
+				{
+					mensaje = "No se pudo registrar al pasajero.";
+					return;
+				}
+			}
+			else
+			{
+				nombre = nombreReserva;
+				telefono = telefonoReserva;
+				correo = correoReserva;
+			}
+			
+			for (size_t i = 0; i < codigosVuelosReserva.size(); i++)
+				if (!listaReservas->agregar(identificacion, codigosVuelosReserva[i]))
+			{
+					mensaje = "El pasajero se registro, pero no se pudieron guardar todas las reservas.";
+					return;
+			}
+				
+				reservaConfirmada = true;
+				mensaje = "Reserva confirmada para " + to_string(codigosVuelosReserva.size()) + " vuelo(s).";
+				
+				ListaPasajeros* lp = listaPasajeros;
+				ListaMaletas* lm = listaMaletas;
+				ListaVuelos* lv = listaVuelos;
+				ListaReservas* lr = listaReservas;
+				GestorPantallas* gestor = gestorPantallas;
+				Grafo* g = grafo;
+				string idReserva = identificacion;
+				vector<string> vuelosCompra = codigosVuelosReserva;
+				vector<string> detalles = detallesRutasReserva;
+				float costo = costoReserva;
+				
+				if (!llevaMaleta)
+				{
+					gestor->solicitarCambioPantalla(new PantallaResumen(lp, lm, lv, lr, gestor, g,
+																		idReserva, vuelosCompra, detalles, costo, ""));
+					return;
+				}
+				
+				int consecutivo = listaMaletas->getCantidad() + 1;
+				string codigoSugerido = "RES-" + to_string(consecutivo);
+				while (listaMaletas->buscar(codigoSugerido) != nullptr)
+				{
+					consecutivo++;
+					codigoSugerido = "RES-" + to_string(consecutivo);
+				}
+				
+				PantallaMaletas* pantallaMaletas = new PantallaMaletas(lm, g, idReserva);
+				pantallaMaletas->setListaPasajeros(lp);
+				pantallaMaletas->prepararReserva(codigoSugerido, destinoMaleta,
+												 [lp, lm, lv, lr, gestor, g, idReserva, vuelosCompra, detalles, costo](string codigoMaleta)
+				{
+													 gestor->solicitarCambioPantalla(new PantallaResumen(lp, lm, lv, lr, gestor, g,
+																										 idReserva, vuelosCompra, detalles, costo, codigoMaleta));
+												 });
+				gestor->solicitarCambioPantalla(pantallaMaletas);
+				return;
 	}
-	else
-	{
-		mensaje = "Ya existe un pasajero con esa identificacion";
-	}
+	
+	// Fuera de una reserva no se crean pasajeros desde esta pantalla.
 }
 
 void PantallaPasajeros::seleccionarPasajero(string identificacion)
@@ -563,7 +818,7 @@ void PantallaPasajeros::seleccionarPasajero(string identificacion)
 	correo = encontrado->pasajero.getCorreo();
 	editando = true;
 	llevaMaleta = false;
-	campoActivo = 0;
+	campoActivo = 1;
 	mensaje = "";
 }
 
@@ -589,13 +844,6 @@ void PantallaPasajeros::modificarPasajero()
 	
 	if (listaPasajeros->modificar(identificacionSeleccionada, nombre, telefono, correo))
 	{
-		if (llevaMaleta)
-		{
-			string identificacionModificada = identificacionSeleccionada;
-			gestorPantallas->solicitarCambioPantalla(new PantallaMaletas(listaMaletas, grafo, identificacionModificada));
-			return;
-		}
-		
 		mensaje = "Pasajero modificado correctamente";
 	}
 	else
@@ -612,6 +860,12 @@ void PantallaPasajeros::eliminarPasajero()
 		return;
 	}
 	
+	if (contarMaletas(listaMaletas, identificacionSeleccionada) > 0)
+	{
+		mensaje = "No se puede eliminar: el pasajero tiene maletas asociadas. Elimine primero sus maletas.";
+		return;
+	}
+	
 	confirmarEliminar = true;
 }
 
@@ -621,6 +875,7 @@ void PantallaPasajeros::limpiarFormulario()
 	nombre = "";
 	telefono = "";
 	correo = "";
+	pesoMaleta = "";
 	identificacionSeleccionada = "";
 	campoActivo = 0;
 	editando = false;
