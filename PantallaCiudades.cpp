@@ -1,4 +1,7 @@
 #include "PantallaCiudades.h"
+#include "ListaVuelos.h"
+#include "ListaRutas.h"
+#include "ListaReservas.h"
 #include <cmath>
 #include <cctype>
 
@@ -55,9 +58,13 @@ static float anchoTexto(const Font& fuente, const string& texto, int tamano)
 	return medida.getLocalBounds().width;
 }
 
-PantallaCiudades::PantallaCiudades(Grafo* grafo)
+PantallaCiudades::PantallaCiudades(Grafo* grafo, ListaVuelos* listaVuelos,
+								   ListaRutas* listaRutas, ListaReservas* listaReservas)
 {
 	this->grafo = grafo;
+	this->listaVuelos = listaVuelos;
+	this->listaRutas = listaRutas;
+	this->listaReservas = listaReservas;
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
 	mapaCargado = texturaMapa.loadFromFile("resources/mapa.png");
 	
@@ -68,6 +75,7 @@ PantallaCiudades::PantallaCiudades(Grafo* grafo)
 	desplazamientoLista = 0;
 	campoActivo = 0;
 	editando = false;
+	confirmarEliminar = false;
 	ubicacionElegida = false;
 	posicionX = 0;
 	posicionY = 0;
@@ -93,6 +101,61 @@ int PantallaCiudades::obtenerFilasVisibles() const
 void PantallaCiudades::procesarEventos(RenderWindow& ventana, Event evento)
 {
 	if (grafo == nullptr) return;
+	
+	if (confirmarEliminar)
+	{
+		float cuadroX = static_cast<float>(ventana.getSize().x) / 2 - 215;
+		float cuadroY = static_cast<float>(ventana.getSize().y) / 2 - 95;
+		
+		if (evento.type == Event::MouseButtonPressed && evento.mouseButton.button == Mouse::Left)
+		{
+			int x = evento.mouseButton.x;
+			int y = evento.mouseButton.y;
+			
+			if (dentroDe(x, y, cuadroX + 100, cuadroY + 130, 100, 45))
+			{
+				string codigoEliminado = codigoSeleccionado;
+				if (grafo->eliminarCiudad(codigoEliminado))
+				{
+					int reservasEliminadas = 0;
+					if (listaVuelos != nullptr && listaReservas != nullptr)
+					{
+						for (NodoVuelo* vuelo = listaVuelos->getPrimero(); vuelo != nullptr; vuelo = vuelo->siguiente)
+						{
+							if (vuelo->vuelo.getCodigoOrigen() == codigoEliminado ||
+								vuelo->vuelo.getCodigoDestino() == codigoEliminado)
+								reservasEliminadas += listaReservas->eliminarPorVuelo(vuelo->vuelo.getCodigo());
+						}
+					}
+					
+					int vuelosEliminados = listaVuelos == nullptr ? 0 :
+						listaVuelos->eliminarPorCiudad(codigoEliminado, listaRutas);
+					limpiarFormulario();
+					mensaje = "Ciudad eliminada. Vuelos relacionados: " + to_string(vuelosEliminados) +
+						", reservas canceladas: " + to_string(reservasEliminadas) + ".";
+				}
+				else
+				{
+					mensaje = "No fue posible eliminar la ciudad.";
+				}
+				
+				confirmarEliminar = false;
+			}
+			else if (dentroDe(x, y, cuadroX + 230, cuadroY + 130, 100, 45))
+			{
+				confirmarEliminar = false;
+				mensaje = "Eliminacion cancelada.";
+			}
+		}
+		
+		if (evento.type == Event::KeyPressed && evento.key.code == Keyboard::Escape)
+		{
+			confirmarEliminar = false;
+			mensaje = "Eliminacion cancelada.";
+		}
+		
+		return;
+	}
 	
 	if (evento.type == Event::MouseWheelScrolled)
 	{
@@ -210,15 +273,7 @@ void PantallaCiudades::procesarEventos(RenderWindow& ventana, Event evento)
 		{
 			if (!codigoSeleccionado.empty())
 			{
-				if (grafo->eliminarCiudad(codigoSeleccionado))
-				{
-					limpiarFormulario();
-					mensaje = "Ciudad eliminada junto con sus conexiones.";
-				}
-				else
-				{
-					mensaje = "No fue posible eliminar la ciudad.";
-				}
+				confirmarEliminar = true;
 			}
 			else
 			{
@@ -674,4 +729,42 @@ void PantallaCiudades::dibujar(RenderWindow& ventana)
 	
 	dibujarTexto(ventana, 318, altoVentana - 70, "Seleccione una ciudad del mapa o del listado. Use EDITAR o ELIMINAR para administrarla.", 12, Color(75, 80, 75));
 	dibujarTexto(ventana, 318, altoVentana - 45, mensaje, 13, Color(90, 120, 95));
+	
+	if (confirmarEliminar)
+	{
+		float cuadroX = anchoVentana / 2 - 215;
+		float cuadroY = altoVentana / 2 - 95;
+		
+		RectangleShape oscurecer(Vector2f(anchoVentana, altoVentana));
+		oscurecer.setFillColor(Color(30, 35, 30, 120));
+		ventana.draw(oscurecer);
+		
+		RectangleShape cuadro(Vector2f(430, 190));
+		cuadro.setPosition(cuadroX, cuadroY);
+		cuadro.setFillColor(Color::White);
+		cuadro.setOutlineThickness(1);
+		cuadro.setOutlineColor(Color(200, 210, 200));
+		ventana.draw(cuadro);
+		
+		RectangleShape encabezadoCuadro(Vector2f(430, 45));
+		encabezadoCuadro.setPosition(cuadroX, cuadroY);
+		encabezadoCuadro.setFillColor(Color(230, 235, 230));
+		ventana.draw(encabezadoCuadro);
+		
+		string nombreCiudad = "";
+		NodoVertice* nodoCiudad = grafo == nullptr ? nullptr : grafo->buscarCiudad(codigoSeleccionado);
+		if (nodoCiudad != nullptr)
+			nombreCiudad = nodoCiudad->ciudad.getNombre();
+		
+		string titulo = "CONFIRMAR ELIMINACION";
+		string pregunta = recortarTexto(fuente, "Esta segura de eliminar la ciudad " + nombreCiudad + "?", 15, 400);
+		string aviso = "Tambien se eliminaran sus vuelos y reservas.";
+		
+		dibujarTexto(ventana, cuadroX + (430 - anchoTexto(fuente, titulo, 19)) / 2, cuadroY + 11, titulo, 19, Color(55, 70, 60));
+		dibujarTexto(ventana, cuadroX + (430 - anchoTexto(fuente, pregunta, 15)) / 2, cuadroY + 65, pregunta, 15, Color(65, 70, 65));
+		dibujarTexto(ventana, cuadroX + (430 - anchoTexto(fuente, aviso, 12)) / 2, cuadroY + 93, aviso, 12, Color(140, 145, 140));
+		
+		dibujarBoton(ventana, cuadroX + 100, cuadroY + 130, 100, 45, "SI", Color(165, 85, 80));
+		dibujarBoton(ventana, cuadroX + 230, cuadroY + 130, 100, 45, "NO", Color(90, 120, 95));
+	}
 }

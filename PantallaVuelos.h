@@ -3,6 +3,7 @@
 #include "Pantalla.h"
 #include "ListaVuelos.h"
 #include "ListaRutas.h"
+#include "ListaReservas.h"
 #include "Grafo.h"
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -16,6 +17,7 @@ private:
 	ListaVuelos* listaVuelos;
 	Grafo* grafo;
 	ListaRutas* listaRutas;
+	ListaReservas* listaReservas;
 	int desplazamientoLista;
 	Font fuente;
 	bool fuenteCargada;
@@ -40,7 +42,8 @@ private:
 	vector<NodoVertice*> obtenerCiudadesDisponibles(bool origen);
 	void dibujarListaCiudades(RenderWindow& ventana, bool origen);
 public:
-	PantallaVuelos(ListaVuelos* listaVuelos, Grafo* grafo, ListaRutas* listaRutas = nullptr);
+	PantallaVuelos(ListaVuelos* listaVuelos, Grafo* grafo, ListaRutas* listaRutas = nullptr,
+				   ListaReservas* listaReservas = nullptr);
 	void procesarEventos(RenderWindow& ventana, Event evento);
 	void actualizar(float tiempo);
 	void dibujar(RenderWindow& ventana);

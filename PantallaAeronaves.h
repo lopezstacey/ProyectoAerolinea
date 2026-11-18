@@ -2,6 +2,8 @@
 #define PANTALLAAERONAVES_H
 #include "Pantalla.h"
 #include "ListaAeronaves.h"
+#include "ListaRutas.h"
+#include "GestorAsignaciones.h"
 #include <SFML/Graphics.hpp>
 #include <string>
 using namespace sf;
@@ -11,6 +13,8 @@ class PantallaAeronaves : public Pantalla
 {
 private:
 	ListaAeronaves* listaAeronaves;
+	ListaRutas* listaRutas;
+	GestorAsignaciones* gestorAsignaciones;
 	Font fuente;
 	bool fuenteCargada;
 	string matricula;
@@ -30,7 +34,8 @@ private:
 	Texture texturaImagen;
 	Sprite spriteImagen;
 public:
-	PantallaAeronaves(ListaAeronaves* listaAeronaves);
+	PantallaAeronaves(ListaAeronaves* listaAeronaves, ListaRutas* listaRutas = nullptr,
+					  GestorAsignaciones* gestorAsignaciones = nullptr);
 	void procesarEventos(RenderWindow& ventana, Event evento);
 	void actualizar(float tiempo);
 	void dibujar(RenderWindow& ventana);

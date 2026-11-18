@@ -8,15 +8,23 @@
 using namespace sf;
 using namespace std;
 
+class ListaVuelos;
+class ListaRutas;
+class ListaReservas;
+
 class PantallaCiudades : public Pantalla
 {
 private:
 	Grafo* grafo;
+	ListaVuelos* listaVuelos;
+	ListaRutas* listaRutas;
+	ListaReservas* listaReservas;
 	Font fuente;
 	Texture texturaMapa;
 	Sprite mapa;
 	bool fuenteCargada;
 	bool mapaCargado;
+	bool confirmarEliminar;
 	string codigo;
 	string nombre;
 	string codigoSeleccionado;
@@ -44,7 +52,8 @@ private:
 	void dibujarMarcadores(RenderWindow& ventana);
 	void dibujarListado(RenderWindow& ventana);
 public:
-	PantallaCiudades(Grafo* grafo);
+	PantallaCiudades(Grafo* grafo, ListaVuelos* listaVuelos = nullptr,
+					 ListaRutas* listaRutas = nullptr, ListaReservas* listaReservas = nullptr);
 	void procesarEventos(RenderWindow& ventana, Event evento) override;
 	void actualizar(float tiempo) override;
 	void dibujar(RenderWindow& ventana) override;

@@ -26,6 +26,15 @@ static string recortarTexto(const Font& fuente, const string& texto, int tamano,
 	return recortado + "...";
 }
 
+static float anchoTexto(const Font& fuente, const string& texto, int tamano)
+{
+	Text medida;
+	medida.setFont(fuente);
+	medida.setCharacterSize(tamano);
+	medida.setString(texto);
+	return medida.getLocalBounds().width;
+}
+
 static bool existeVueloDirecto(ListaVuelos* lista, const string& origen, const string& destino, const string& ignorarCodigo)
 {
 	for (NodoVuelo* actual = lista->getPrimero(); actual != nullptr; actual = actual->siguiente)
@@ -38,11 +47,13 @@ static bool existeVueloDirecto(ListaVuelos* lista, const string& origen, const s
 	return false;
 }
 
-PantallaVuelos::PantallaVuelos(ListaVuelos* listaVuelos, Grafo* grafo, ListaRutas* listaRutas)
+PantallaVuelos::PantallaVuelos(ListaVuelos* listaVuelos, Grafo* grafo, ListaRutas* listaRutas,
+							   ListaReservas* listaReservas)
 {
 	this->listaVuelos = listaVuelos;
 	this->grafo = grafo;
 	this->listaRutas = listaRutas;
+	this->listaReservas = listaReservas;
 	desplazamientoLista = 0;
 	fuenteCargada = fuente.loadFromFile("resources/times.ttf");
 	codigo = "";
@@ -69,28 +80,30 @@ void PantallaVuelos::procesarEventos(RenderWindow& ventana, Event evento)
 {
 	if (confirmarEliminar)
 	{
+		float cuadroX = ventana.getSize().x / 2.0f - 215;
+		float cuadroY = ventana.getSize().y / 2.0f - 95;
+		
 		if (evento.type == Event::MouseButtonPressed && evento.mouseButton.button == Mouse::Left)
 		{
 			float x = evento.mouseButton.x;
 			float y = evento.mouseButton.y;
-			if (x >= 610 && x <= 710 && y >= 420 && y <= 465)
+			if (x >= cuadroX + 100 && x <= cuadroX + 200 && y >= cuadroY + 120 && y <= cuadroY + 165)
 			{
 				string vueloEliminado = codigoSeleccionado;
-				grafo->eliminarVuelo(vueloEliminado);
 				if (listaVuelos->eliminar(vueloEliminado))
 				{
+					grafo->eliminarVuelo(vueloEliminado);
 					int rutasEliminadas = listaRutas != nullptr ? listaRutas->eliminarPorVuelo(vueloEliminado) : 0;
-					if (rutasEliminadas > 0)
-						mensaje = "Vuelo eliminado junto con " + to_string(rutasEliminadas) + " ruta(s) asignada(s).";
-					else
-						mensaje = "Vuelo eliminado correctamente.";
+					int reservasEliminadas = listaReservas != nullptr ? listaReservas->eliminarPorVuelo(vueloEliminado) : 0;
+					mensaje = "Vuelo eliminado. Rutas asignadas: " + to_string(rutasEliminadas) +
+						", reservas canceladas: " + to_string(reservasEliminadas) + ".";
 				}
 				else
 										  mensaje = "No se pudo eliminar el vuelo.";
 				confirmarEliminar = false;
 				limpiarFormulario();
 			}
-			else if (x >= 735 && x <= 835 && y >= 420 && y <= 465)
+			else if (x >= cuadroX + 230 && x <= cuadroX + 330 && y >= cuadroY + 120 && y <= cuadroY + 165)
 			{
 				confirmarEliminar = false;
 				mensaje = "Eliminacion cancelada.";
@@ -583,27 +596,38 @@ void PantallaVuelos::dibujarListado(RenderWindow& ventana)
 
 void PantallaVuelos::dibujarConfirmacion(RenderWindow& ventana)
 {
-	RectangleShape oscurecer(Vector2f(ventana.getSize().x, ventana.getSize().y));
+	float ancho = static_cast<float>(ventana.getSize().x);
+	float alto = static_cast<float>(ventana.getSize().y);
+	float cuadroX = ancho / 2 - 215;
+	float cuadroY = alto / 2 - 95;
+	
+	RectangleShape oscurecer(Vector2f(ancho, alto));
 	oscurecer.setFillColor(Color(0, 0, 0, 110));
 	ventana.draw(oscurecer);
+	
 	RectangleShape cuadro(Vector2f(430, 190));
-	cuadro.setPosition(535, 300);
+	cuadro.setPosition(cuadroX, cuadroY);
 	cuadro.setFillColor(Color::White);
 	cuadro.setOutlineThickness(2);
 	cuadro.setOutlineColor(Color(90, 120, 95));
 	ventana.draw(cuadro);
-	dibujarTexto(ventana, 585, 335, "CONFIRMAR ELIMINACION", 20, Color(55, 70, 60));
-	dibujarTexto(ventana, 575, 375, "Esta segura de eliminar este vuelo?", 16, Color::Black);
+	
+	string titulo = "CONFIRMAR ELIMINACION";
+	string pregunta = "Esta segura de eliminar este vuelo?";
+	dibujarTexto(ventana, cuadroX + (430 - anchoTexto(fuente, titulo, 20)) / 2, cuadroY + 25, titulo, 20, Color(55, 70, 60));
+	dibujarTexto(ventana, cuadroX + (430 - anchoTexto(fuente, pregunta, 16)) / 2, cuadroY + 70, pregunta, 16, Color::Black);
+	
 	RectangleShape botonSi(Vector2f(100, 45));
-	botonSi.setPosition(610, 420);
+	botonSi.setPosition(cuadroX + 100, cuadroY + 120);
 	botonSi.setFillColor(Color(165, 85, 80));
 	ventana.draw(botonSi);
-	dibujarTexto(ventana, 645, 432, "SI", 16, Color::White);
+	dibujarTexto(ventana, cuadroX + 100 + (100 - anchoTexto(fuente, "SI", 16)) / 2, cuadroY + 132, "SI", 16, Color::White);
+	
 	RectangleShape botonNo(Vector2f(100, 45));
-	botonNo.setPosition(735, 420);
+	botonNo.setPosition(cuadroX + 230, cuadroY + 120);
 	botonNo.setFillColor(Color(90, 120, 95));
 	ventana.draw(botonNo);
-	dibujarTexto(ventana, 770, 432, "NO", 16, Color::White);
+	dibujarTexto(ventana, cuadroX + 230 + (100 - anchoTexto(fuente, "NO", 16)) / 2, cuadroY + 132, "NO", 16, Color::White);
 }
 
 void PantallaVuelos::registrarVuelo()

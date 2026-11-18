@@ -801,7 +801,6 @@ void PantallaPasajeros::registrarPasajero()
 				return;
 	}
 	
-	// Fuera de una reserva no se crean pasajeros desde esta pantalla.
 }
 
 void PantallaPasajeros::seleccionarPasajero(string identificacion)
